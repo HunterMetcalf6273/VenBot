@@ -1,0 +1,10 @@
+-Ie:\utilities\MinGW\lib\gcc\mingw32\6.3.0\include\c++
+-Ie:\utilities\MinGW\lib\gcc\mingw32\6.3.0\include\c++\mingw32
+-Ie:\utilities\MinGW\lib\gcc\mingw32\6.3.0\include\c++\backward
+-Ie:\utilities\MinGW\lib\gcc\mingw32\6.3.0\include
+-Ie:\utilities\MinGW\include
+-Ie:\utilities\MinGW\lib\gcc\mingw32\6.3.0\include-fixed
+-Ie:\utilities\MinGW\mingw32\include
+-IC:\Users\Venador\Documents\VenBot\VenBot
+-target
+i686-pc-windows-gnu
