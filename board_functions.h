@@ -1,1 +1,0 @@
-struct board new_game();

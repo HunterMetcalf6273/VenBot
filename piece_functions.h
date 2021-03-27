@@ -1,1 +1,0 @@
-struct piece new_piece(int file, int rank, int type, int owner);

@@ -5,8 +5,7 @@
 //the moving player
 //TODO: Implement
 int eval_checkmate(struct board boardstate){
-	
-	return 0
+	return 0;
 }
 
 int eval_material(struct board boardstate){
@@ -53,7 +52,7 @@ int eval_material(struct board boardstate){
 					}
 					break;
 			}
-			printf("%d, %d, %d, %d X%dX " , file, rank, boardstate.grid[file][rank].type, boardstate.grid[file][rank].owner, out);
+			if(boardstate.grid[file][rank].type != VACANT)printf("file: %d, rank: %d, type: %d, owner: %d, eval: %d\n", file, rank, boardstate.grid[file][rank].type, boardstate.grid[file][rank].owner, out);
 		}
 	}
 	return out;
