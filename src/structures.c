@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "structures.h"
 //******************************************************************
 //							Board Functions							
@@ -59,11 +60,6 @@ board board_new(){
 	}
 }*/
 
-//Given a move-chain and board, makes the given moves on the given board
-//and returns the final board
-//board board_from_moves(move cur,board boardstate){
-//}
-
 //Moves a piece to a given location, destroying whatever
 //is there and emptying the original tile
 //Intended only for use by board_move
@@ -95,6 +91,10 @@ struct board board_move(struct board board_in, struct move move_in){
 			board_in = _piece_move(board_in, 0, from_rank, 2, to_rank);
 		}
 	}
+	//Promotion handling
+	else if(move_in.promote != 0){ 
+		board_in.grid[to_file][to_rank].type = move_in.promote;
+	}
 	//En passant handling
 	//The only legal diagonal pawn move that moves into an empty tile is an en passant
 	else if(board_in.grid[from_file][from_rank].type == PAWN && from_file != to_file && board_in.grid[to_file][to_rank].type == VACANT){
@@ -108,12 +108,34 @@ struct board board_move(struct board board_in, struct move move_in){
 		}
 	}
 	board_in = _piece_move(board_in, from_file, from_rank, to_file, to_rank);
-	//Promotion handling
-	if(move_in.promote != 0){ 
-		board_in.grid[to_file][to_rank].type = move_in.promote;
-	}
 	board_in.to_move = !board_in.to_move;
 	return board_in;
+}
+//Returns an array of all legal moves by the given piece, from the given position
+//TODO: Implement
+move_list_node board_get_legal_moves(board in, int from_file, int from_rank){
+	
+}
+
+
+//Returns a linked list of move_nodes for every possible legal move from the board position given by in
+//TODO: Implement
+move_node* board_get_legal_move_list(board in, int depth){
+	move_node out, cur;
+	move_list_node start, cur;
+	start = cur;
+	out = move_node_new(depth);
+	index = 0;
+	for(int file = 0; file <= 7; file++){
+		for(int rank = 0; rank <= 7; rank++){
+			if(in.grid[file][rank].type != VACANT && in.grid[file][rank].owner == in.to_move){
+				cur.next = board_get_legal_moves(in, file, rank);
+				while(cur.next != NULL){
+					cur = cur.next;
+				}
+			} 
+		}
+	}
 }
 
 //******************************************************************
@@ -139,5 +161,48 @@ move move_new(int from_file, int from_rank, int to_file, int to_rank, int promot
 	out.to_file = to_file;
 	out.to_rank = to_rank;
 	out.promote = promote;
+	return out;
+}
+
+//******************************************************************
+//							Move_node Functions						
+//******************************************************************
+
+//Given a depth, returns an otherwise blank move_node
+move_node move_node_new(int depth){
+	move_node out;
+	out.depth = depth;
+	return out;
+}
+
+//Recursive function which determines the value of the given node, considering all of its children
+int move_node_eval(move_node* node){
+	int out, left_val;
+	bool has_down, has_left;
+	move_node start;
+	has_down = start.down != NULL;
+	has_left = start.left != NULL;
+	start = *node;
+	//If this node has a downward node, then its value should be that node's value
+	if(has_down){
+		out = move_node_eval(start.down);
+	}
+	//If it doesn't, then its value should be calculated
+	else{
+		out = eval_overall(start.next_board);
+	}
+	//If there isn't a left node, then we are done
+	//If there is, we must set our value to the value most favorable to the player making the move (because it is assumed that the move resulting in that value will be played)
+	if(has_left){
+		left_val = move_node_eval(start.left);
+		//If this move was made by white
+		if(start.next_board.to_move == BLACK){
+			if(left_val > out) out = left_val;
+		}
+		//If this move was made by black
+		else {
+			if(left_val < out) out = left_val;
+		}
+	}
 	return out;
 }
