@@ -53,7 +53,7 @@ board board_new(){
 //Given a position in fen format, returns defined board
 //TODO: Document & test
 board board_from_fen(char in[]){
-	int file, rank, string_index, grid_index, store;
+	int string_index, grid_index, store;
 	board out;
 	string_index = 0;
 	grid_index = 0;
@@ -119,7 +119,6 @@ board board_from_fen(char in[]){
 					out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(VACANT, 0);
 					grid_index++;
 				}
-				string_index += store - 1;
 				break;
 		}
 		string_index++;
@@ -143,6 +142,7 @@ board board_from_fen(char in[]){
 				out.black_queenside = 1;
 				break;
 		}
+		string_index++;
 	}
 	string_index++;
 	if(in[string_index] != '-'){

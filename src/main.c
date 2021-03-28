@@ -4,13 +4,7 @@
 
 void main(int argc, char **argv)
 {
-	board test = board_new();
-	move out;
-	out.from_file = 3;
-	out.from_rank = 0;
-	out.to_file = 7;
-	out.to_rank = 7;
-	out.promote = 0;
-	test = board_move(test, out);
+	char test_fen[] = "rnbqkbnr/pppppppp/3QQ3/1rQqqQr1/1rQQQQr1/1rrrrrr1/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	board test = board_from_fen(test_fen);
 	printf("%d", eval_material(test));
 }
