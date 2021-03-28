@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "structures.h"
+#include "analysis.h"
 //******************************************************************
 //							Board Functions							
 //******************************************************************
@@ -50,15 +51,109 @@ board board_new(){
 }
 
 //Given a position in fen format, returns defined board
-//TODO: Implement
-/*board board_from_fen(char in[]){
-	int file, rank, index;
+//TODO: Document & test
+board board_from_fen(char in[]){
+	int file, rank, string_index, grid_index, store;
 	board out;
-	index = 0;
-	while(in[index] != '\0'){
-		
+	string_index = 0;
+	grid_index = 0;
+	while(in[string_index] != ' '){
+		switch(in[string_index]){
+			//Lowercase letters, representing black pieces
+			case 'r':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(ROOK, BLACK);
+				grid_index++;
+				break;
+			case 'n':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(KNIGHT, BLACK);
+				grid_index++;
+				break;
+			case 'b':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(BISHOP, BLACK);
+				grid_index++;
+				break;
+			case 'q':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(QUEEN, BLACK);
+				grid_index++;
+				break;
+			case 'k':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(KING, BLACK);
+				grid_index++;
+				break;
+			case 'p':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(PAWN, BLACK);
+				grid_index++;
+				break;
+			//Uppercase letters, representing white pieces
+			case 'R':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(ROOK, WHITE);
+				grid_index++;
+				break;
+			case 'N':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(KNIGHT, WHITE);
+				grid_index++;
+				break;
+			case 'B':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(BISHOP, WHITE);
+				grid_index++;
+				break;
+			case 'Q':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(QUEEN, WHITE);
+				grid_index++;
+				break;
+			case 'K':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(KING, WHITE);
+				grid_index++;
+				break;
+			case 'P':
+				out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(PAWN, WHITE);
+				grid_index++;
+				break;
+			//Slash character
+			case '/':
+				break;
+			//Numbers
+			default:
+				store = in[string_index] - 48;
+				for(int i = 0; i < store; i++){
+					out.grid[grid_index%8][7 - (grid_index/8)] = new_piece(VACANT, 0);
+					grid_index++;
+				}
+				string_index += store - 1;
+				break;
+		}
+		string_index++;
 	}
-}*/
+	string_index++;
+	if(in[string_index] == 'w') out.to_move = WHITE;
+	else out.to_move = BLACK;
+	string_index += 2;
+	while(in[string_index] != ' '){
+		switch(in[string_index]){
+			case 'K':
+				out.white_kingside = 1;
+				break;
+			case 'Q':
+				out.white_queenside = 1;
+				break;
+			case 'k':
+				out.black_kingside = 1;
+				break;
+			case 'q':
+				out.black_queenside = 1;
+				break;
+		}
+	}
+	string_index++;
+	if(in[string_index] != '-'){
+		out.en_passant_valid = 1;
+		out.en_passant_file = in[string_index++] - 97;
+		out.en_passant_rank = in[string_index++] - 48;
+	}
+	string_index += 2;
+	out.draw_counter = in[string_index] - 48;
+	return out;
+}
 
 //Moves a piece to a given location, destroying whatever
 //is there and emptying the original tile
@@ -71,6 +166,7 @@ struct board _piece_move(struct board board_in, int from_file, int from_rank, in
 
 //Given a board and a move, makes a move
 //Assumes all given moves are legal; undefined behavior for illegal moves
+//TODO: Add counter/flag handling
 struct board board_move(struct board board_in, struct move move_in){
 	int from_file, from_rank, to_file, to_rank;
 	from_file = move_in.from_file;
@@ -93,7 +189,7 @@ struct board board_move(struct board board_in, struct move move_in){
 	}
 	//Promotion handling
 	else if(move_in.promote != 0){ 
-		board_in.grid[to_file][to_rank].type = move_in.promote;
+		board_in.grid[from_file][from_rank].type = move_in.promote;
 	}
 	//En passant handling
 	//The only legal diagonal pawn move that moves into an empty tile is an en passant
@@ -111,31 +207,17 @@ struct board board_move(struct board board_in, struct move move_in){
 	board_in.to_move = !board_in.to_move;
 	return board_in;
 }
-//Returns an array of all legal moves by the given piece, from the given position
+//Returns a linked list of all legal moves by the given piece, from the given position
 //TODO: Implement
-move_list_node board_get_legal_moves(board in, int from_file, int from_rank){
+move_node* board_get_legal_moves(board in, int from_file, int from_rank){
 	
 }
 
 
 //Returns a linked list of move_nodes for every possible legal move from the board position given by in
 //TODO: Implement
-move_node* board_get_legal_move_list(board in, int depth){
-	move_node out, cur;
-	move_list_node start, cur;
-	start = cur;
-	out = move_node_new(depth);
-	index = 0;
-	for(int file = 0; file <= 7; file++){
-		for(int rank = 0; rank <= 7; rank++){
-			if(in.grid[file][rank].type != VACANT && in.grid[file][rank].owner == in.to_move){
-				cur.next = board_get_legal_moves(in, file, rank);
-				while(cur.next != NULL){
-					cur = cur.next;
-				}
-			} 
-		}
-	}
+move_node* board_get_legal_move_list(board in){
+	
 }
 
 //******************************************************************
@@ -165,17 +247,69 @@ move move_new(int from_file, int from_rank, int to_file, int to_rank, int promot
 }
 
 //******************************************************************
-//							Move_node Functions						
+//							board_node Functions						
 //******************************************************************
 
-//Given a depth, returns an otherwise blank move_node
-move_node move_node_new(int depth){
-	move_node out;
+//Creates a board_node from given parameters (makes move move_in on board board_in; does NOT copy board_in to board)
+//Only intended to be called by eval_board_node
+board_node _board_node_new(board board_in, move move_in, int depth){
+	board_node out;
+	out.cur_board = board_move(board_in, move_in);
 	out.depth = depth;
 	return out;
 }
+//Returns the calculated value of the given node, considering all its possible children to given max depth
+//TODO:Test & Document
+int eval_board_node(board_node node_in, int max_depth){
+	int out, child_value;
+	move_node* list_cur;
+	//If max depth has not been reached, generate linked list of possible moves
+	if(node_in.depth <= max_depth) list_cur = board_get_legal_move_list(node_in.cur_board);
+	//If no possible moves or max depth reached, return calculated value of boardstate
+	if(list_cur == NULL) return eval_overall(node_in.cur_board);
+	//White to choose next move
+	if(node_in.cur_board.to_move == BLACK){
+		out = -2147483648;
+		while(list_cur != NULL){
+			child_value = eval_board_node(_board_node_new(node_in.cur_board, list_cur->stored_move, node_in.depth + 1), max_depth);
+			if(child_value > out) out = child_value;
+			list_cur = list_cur->next;
+		}
+	}
+	//Black to choose next move
+	else{
+		out = 2147483647;
+		while(list_cur != NULL){
+			child_value = eval_board_node(_board_node_new(node_in.cur_board, list_cur->stored_move, node_in.depth + 1), max_depth);
+			if(child_value < out) out = child_value;
+			list_cur = list_cur->next;
+		}
+	}
+	return out;
+}
 
-//Recursive function which determines the value of the given node, considering all of its children
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*//Recursive function which determines the value of the given node, considering all of its children
 int move_node_eval(move_node* node){
 	int out, left_val;
 	bool has_down, has_left;
@@ -205,4 +339,4 @@ int move_node_eval(move_node* node){
 		}
 	}
 	return out;
-}
+}*/

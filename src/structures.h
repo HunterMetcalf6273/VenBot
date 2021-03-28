@@ -66,35 +66,29 @@ struct move{
 	unsigned int promote:3;
 };
 typedef struct move move;
-struct move_node{
-	//Stores the board this move results in
-	board next_board;
-	//Stores the made move
-	move current_move;
-	//Stores the next move_node downwards (that is, the first calculated move_node from this boardstate)
-	struct move_node* down;
-	//Store the next move_node leftwards (that is, the next in the list of possible moves from the previous boardstate)
-	struct move_node* left;
+struct board_node{
+	//Stores the current board
+	board cur_board;
 	//Stores the depth of this node
-	unsigned int depth:6;
+	unsigned int depth:4;
+};
+typedef struct board_node board_node;
+
+struct move_node{
+	move stored_move;
+	struct move_node* next;
 };
 typedef struct move_node move_node;
-
-struct move_list_node{
-	move stored_move;
-	struct move_list_node* next;
-};
-typedef struct move_list_node move_list_node;
 
 //Function declarations
 board board_new();
 board board_from_fen(char in[]);
 board _piece_move(struct board board_in, int from_file, int from_rank, int to_file, int to_rank);
 board board_move(struct board board_in, struct move move_in);
-move_list_node moveboard_get_legal_moves(board in, int from_file, int from_rank);
-move_node* board_get_legal_move_list(board in, int depth);
+move_node* moveboard_get_legal_moves(board in, int from_file, int from_rank);
+move_node* board_get_legal_move_list(board in);
 piece new_piece(int type, int owner);
 move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote);
-move_node move_node_new(int depth);
-int move_node_eval(move_node* node);
+board_node move_node_new(int depth);
+int move_node_eval(board_node* node);
 
