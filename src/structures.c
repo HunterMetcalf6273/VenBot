@@ -5,51 +5,6 @@
 //							Board Functions							
 //******************************************************************
 
-//Creates a board representing the initial Chess setup
-board board_new(){
-	board out;
-	out.to_move = WHITE;
-	out.draw_counter = 0;
-	out.grid[0][1] = new_piece(PAWN, WHITE);
-	out.grid[1][1] = new_piece(PAWN, WHITE);
-	out.grid[2][1] = new_piece(PAWN, WHITE);
-	out.grid[3][1] = new_piece(PAWN, WHITE);
-	out.grid[4][1] = new_piece(PAWN, WHITE);
-	out.grid[5][1] = new_piece(PAWN, WHITE);
-	out.grid[6][1] = new_piece(PAWN, WHITE);
-	out.grid[7][1] = new_piece(PAWN, WHITE);
-	out.grid[0][6] = new_piece(PAWN, BLACK);
-	out.grid[1][6] = new_piece(PAWN, BLACK);
-	out.grid[2][6] = new_piece(PAWN, BLACK);
-	out.grid[3][6] = new_piece(PAWN, BLACK);
-	out.grid[4][6] = new_piece(PAWN, BLACK);
-	out.grid[5][6] = new_piece(PAWN, BLACK);
-	out.grid[6][6] = new_piece(PAWN, BLACK);
-	out.grid[7][6] = new_piece(PAWN, BLACK);
-	out.grid[0][0] = new_piece(ROOK, WHITE);
-	out.grid[1][0] = new_piece(KNIGHT, WHITE);
-	out.grid[2][0] = new_piece(BISHOP, WHITE);
-	out.grid[3][0] = new_piece(QUEEN, WHITE);
-	out.grid[4][0] = new_piece(KING, WHITE);
-	out.grid[5][0] = new_piece(BISHOP, WHITE);
-	out.grid[6][0] = new_piece(KNIGHT, WHITE);
-	out.grid[7][0] = new_piece(ROOK, WHITE);
-	out.grid[0][7] = new_piece(ROOK, BLACK);
-	out.grid[1][7] = new_piece(KNIGHT, BLACK);
-	out.grid[2][7] = new_piece(BISHOP, BLACK);
-	out.grid[3][7] = new_piece(QUEEN, BLACK);
-	out.grid[4][7] = new_piece(KING, BLACK);
-	out.grid[5][7] = new_piece(BISHOP, BLACK);
-	out.grid[6][7] = new_piece(KNIGHT, BLACK);
-	out.grid[7][7] = new_piece(ROOK, BLACK);
-	for(int i = 0; i <= 7; i++){
-		for(int j = 2; j <= 5; j++){
-			out.grid[i][j] = new_piece(VACANT, 0);
-		}
-	}
-	return out;
-}
-
 //Given a position in fen format, returns defined board
 //TODO: Document & test
 board board_from_fen(char in[]){
@@ -150,11 +105,20 @@ board board_from_fen(char in[]){
 		out.en_passant_file = in[string_index++] - 97;
 		out.en_passant_rank = in[string_index++] - 48;
 	}
+	else{
+		out.en_passant_valid = 0;
+	}
 	string_index += 2;
 	out.draw_counter = in[string_index] - 48;
 	return out;
 }
 
+//Returns an invalid boardstate (the game should be drawn by the time draw_counter = 75, so it can never reach 127)
+board board_invalid(){
+	board out;
+	out.draw_counter = 127;
+	return out;
+}
 //Moves a piece to a given location, destroying whatever
 //is there and emptying the original tile
 //Intended only for use by board_move
@@ -165,26 +129,56 @@ struct board _piece_move(struct board board_in, int from_file, int from_rank, in
 }
 
 //Given a board and a move, makes a move
-//Assumes all given moves are legal; undefined behavior for illegal moves
-//TODO: Add counter/flag handling
+//Assumes all given moves are "legal" (ignoring check); undefined behavior for illegal moves
 struct board board_move(struct board board_in, struct move move_in){
 	int from_file, from_rank, to_file, to_rank;
+	bool pawn_movement;
 	from_file = move_in.from_file;
 	from_rank = move_in.from_rank;
 	to_file = move_in.to_file;
 	to_rank = move_in.to_rank;
+	pawn_movement = board_in.grid[from_file][from_rank].type == PAWN;
+	//En passant flag handling
+	if(pawn_movement && (from_rank - to_rank == 2 || from_rank - to_rank == -2)){
+		board_in.en_passant_valid = true; 
+		board_in.en_passant_file = to_file;
+		board_in.en_passant_rank = to_rank;
+	}
+	else board_in.en_passant_valid = false;
+	//Draw counter handling
+	if(pawn_movement || board_in.grid[to_file][to_rank].type != VACANT) board_in.draw_counter = 0;
+	else board_in.draw_counter++;
+	//Castling rights handling
+	//White's queenside rook
+	if(board_in.white_queenside && from_file == 0 && from_rank == 0) board_in.white_queenside = false;
+	//White's kingside rook
+	else if(board_in.white_kingside && from_file == 7 && from_rank == 0) board_in.white_kingside = false;
+	//White's king
+	else if((board_in.white_queenside || board_in.white_kingside) && from_file == 4 && from_rank == 0){
+		board_in.white_queenside = false;
+		board_in.white_kingside = false;
+	}
+	//Black's queenside rook
+	else if(board_in.black_queenside && from_file == 0 && from_rank == 0) board_in.black_queenside = false;
+	//Black's kingside rook
+	else if(board_in.black_kingside && from_file == 7 && from_rank == 0) board_in.black_kingside = false;
+	//Black's king
+	else if((board_in.black_queenside || board_in.black_kingside) && from_file == 4 && from_rank == 7){
+		board_in.black_queenside = false;
+		board_in.black_kingside = false;
+	}
 	//Castling handling
 	//The only legal move where the king moves more than one tile is the castle, so if the difference in file is > 1, then it must be a castle
-	if(board_in.grid[from_file][from_rank].type == KING && (move_in.from_file - move_in.to_file != 1 && move_in.to_file - move_in.to_rank != -1)){
+	if(board_in.grid[from_file][from_rank].type == KING && (move_in.from_file - move_in.to_file > 1 && move_in.from_file - move_in.to_file < -1)){
 		//Kingside castling
 		if(from_file - to_file > 0){
 			//Moves rook; king is moved at end of function
-			board_in = _piece_move(board_in, 7, from_rank, 5, to_rank);
+			board_in = _piece_move(board_in, 7, from_rank, 5, from_rank);
 		}
 		//Queenside castling
 		else{
 			//Same as above
-			board_in = _piece_move(board_in, 0, from_rank, 2, to_rank);
+			board_in = _piece_move(board_in, 0, from_rank, 2, from_rank);
 		}
 	}
 	//Promotion handling
@@ -193,7 +187,7 @@ struct board board_move(struct board board_in, struct move move_in){
 	}
 	//En passant handling
 	//The only legal diagonal pawn move that moves into an empty tile is an en passant
-	else if(board_in.grid[from_file][from_rank].type == PAWN && from_file != to_file && board_in.grid[to_file][to_rank].type == VACANT){
+	else if(pawn_movement && from_file != to_file && board_in.grid[to_file][to_rank].type == VACANT){
 		//White's move
 		if(board_in.grid[from_file][from_rank].owner == WHITE){
 			board_in.grid[to_file][to_rank-1].type = VACANT;
@@ -207,17 +201,218 @@ struct board board_move(struct board board_in, struct move move_in){
 	board_in.to_move = !board_in.to_move;
 	return board_in;
 }
-//Returns a linked list of all legal moves by the given piece, from the given position
-//TODO: Implement
-move_node* board_get_legal_moves(board in, int from_file, int from_rank){
-	
+
+//Returns a board_array of all possible legal positions reachable by one move from given position
+//Final entry in array marked by invalid board (draw_counter = 127)
+board_array board_legal_states(struct board board_in){
+	int temp_index, pre_check_index;
+	board_array pre_check, out;
+	move_array temp;
+	pre_check_index = 0;
+	for(int file = 0; file <= 7; file++){
+		for(int rank = 0; rank <= 7; rank++){
+			if(board_in.grid[file][rank].owner == board_in.to_move && board_in.grid[file][rank].type != 0){
+				temp = board_piece_possible_moves(board_in, file, rank);
+				temp_index = 0;
+				while(temp.array[temp_index].promote != 7){
+					pre_check.array[pre_check_index++] = board_move(board_in, temp.array[temp_index++]);
+				}
+			}
+		}
+	}
+	pre_check.array[pre_check_index] = board_invalid();
+	pre_check_index = 0;
+	temp_index = 0;
+	//Removes all moves which put the moving player into check
+	while(pre_check.array[pre_check_index].draw_counter != 127){
+		if(!eval_check(pre_check.array[pre_check_index])) out.array[temp_index++] = pre_check.array[pre_check_index];
+		pre_check_index++;
+	}
+	out.array[temp_index] = board_invalid();
+	return out;
 }
 
-
-//Returns a linked list of move_nodes for every possible legal move from the board position given by in
+//Returns a move_array of all possible "legal" (not considering check) moves from given position, by piece at given location
+//Assumes that given piece is actually able to move this turn (does not respect board_in.to_move, except for pawn movement direction)
+//Final entry in array marked by invalid move (promote = 7)
 //TODO: Implement
-move_node* board_get_legal_move_list(board in){
-	
+move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank){
+	int out_index;
+	bool temp_file, temp_rank, not_top, not_bottom, not_right, not_left;
+	move_array out;
+	out_index = 0;
+	switch(board_in.grid[from_file][from_rank].type){
+		case PAWN:
+			not_right = from_file < 7;
+			not_left = from_file > 0;
+			//White's pawn
+			if(board_in.to_move == WHITE){
+				not_top = from_rank < 6;
+				//Forward movement
+				if(board_in.grid[from_file][from_rank+1].type == VACANT){
+					//If reaching enemy backrank, promote
+					if(!not_top){
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, QUEEN);
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, ROOK);
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, BISHOP);
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, KNIGHT);
+					}else{
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, 0);
+						//Double move
+						if(from_rank == 1 && board_in.grid[from_file][from_rank+2].type == VACANT) move_new(from_file, from_rank, from_file, from_rank+2, 0);
+					}
+				}
+				//Captures
+				//Rightward captures
+				if(not_right){
+					//Non-promoting
+					if(not_top){
+						//If up-right is caputurable, or en passant target
+						if(board_capturable(board_in, from_file+1, from_rank+1) || (board_in.en_passant_valid && board_in.en_passant_file == from_file+1 && board_in.en_passant_rank == from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+1, 0);
+					}
+					//Promoting
+					else{
+						if(board_capturable(board_in, from_file+1, from_rank+1)){
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+1, QUEEN);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+1, ROOK);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+1, BISHOP);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+1, KNIGHT);
+						}
+					}
+				}
+				//Leftward captures
+				if(not_left){
+					//Non-promoting
+					if(not_top){
+						//If up-left is caputurable, or en passant target
+						if(board_capturable(board_in, from_file-1, from_rank+1) || (board_in.en_passant_valid && board_in.en_passant_file == from_file-1 && board_in.en_passant_rank == from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+1, 0);
+					}
+					//Promoting
+					else{
+						if(board_capturable(board_in, from_file-1, from_rank+1)){
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+1, QUEEN);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+1, ROOK);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+1, BISHOP);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+1, KNIGHT);
+						}
+					}
+				}
+			}
+			//Black's pawn
+			else{
+				not_bottom = from_rank > 1;
+				//Forward movement
+				if(board_in.grid[from_file][from_rank-1].type == VACANT){
+					//If reaching enemy backrank, promote
+					if(!not_bottom){
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, QUEEN);
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, ROOK);
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, BISHOP);
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, KNIGHT);
+					}else{
+						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, 0);
+						//Double move
+						if(from_rank == 6 && board_in.grid[from_file][from_rank-2].type == VACANT) move_new(from_file, from_rank, from_file, from_rank-2, 0);
+					}
+				}
+				//Captures
+				//Rightward captures
+				if(not_right){
+					//Non-promoting
+					if(not_bottom){
+						//If up-right is caputurable, or en passant target
+						if(board_capturable(board_in, from_file+1, from_rank-1) || (board_in.en_passant_valid && board_in.en_passant_file == from_file+1 && board_in.en_passant_rank == from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-1, 0);
+					}
+					//Promoting
+					else{
+						if(board_capturable(board_in, from_file+1, from_rank-1)){
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-1, QUEEN);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-1, ROOK);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-1, BISHOP);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-1, KNIGHT);
+						}
+					}
+				}
+				//Leftward captures
+				if(not_left){
+					//Non-promoting
+					if(not_bottom){
+						//If up-left is caputurable, or en passant target
+						if(board_capturable(board_in, from_file-1, from_rank-1) || (board_in.en_passant_valid && board_in.en_passant_file == from_file-1 && board_in.en_passant_rank == from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-1, 0);
+					}
+					//Promoting
+					else{
+						if(board_capturable(board_in, from_file-1, from_rank-1)){
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-1, QUEEN);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-1, ROOK);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-1, BISHOP);
+							out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-1, KNIGHT);
+						}
+					}
+				}
+			}
+		case KING:
+			not_top = from_rank < 7;
+			not_bottom = from_rank > 0;
+			not_right = from_file < 7;
+			not_left = from_file > 0;
+			//Up
+			if(not_top){
+				//Up-Left
+				if(not_left && board_moveable(board_in, from_file-1, from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+1, 0);
+				//Up
+				if(board_moveable(board_in, from_file, from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, 0);
+				//Up-Right
+				if(not_right && board_moveable(board_in, from_file+1, from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+1, 0);
+			}
+			//Down
+			if(not_bottom){
+				//Down-Left
+				if(not_left && board_moveable(board_in, from_file-1, from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-1, 0);
+				//Down
+				if(board_moveable(board_in, from_file, from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, 0);
+				//Down-Right
+				if(not_right && board_moveable(board_in, from_file+1, from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-1, 0);
+			}
+			//Right
+			if(not_right && board_moveable(board_in, from_file+1, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank, 0);
+			//Left
+			if(not_left && board_moveable(board_in, from_file-1, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank, 0);
+			break;
+		case QUEEN:
+			not_top = from_rank < 7;
+			not_bottom = from_rank > 0;
+			not_right = from_file < 7;
+			not_left = from_file > 0;
+		case ROOK:
+			not_top = from_rank < 7;
+			not_bottom = from_rank > 0;
+			not_right = from_file < 7;
+			not_left = from_file > 0;
+		case BISHOP:
+			not_top = from_rank < 7;
+			not_bottom = from_rank > 0;
+			not_right = from_file < 7;
+			not_left = from_file > 0;
+		case KNIGHT:
+			not_top = from_rank < 6;
+			not_bottom = from_rank > 1;
+			not_right = from_file < 6;
+			not_left = from_file > 1;
+			break;
+	}
+	out.array[out_index] = move_invalid();
+	return out;
+}
+
+//Returns whether or not the given tile contains a piece not owned by the moving player
+bool board_capturable(board board_in, int to_file, int to_rank){
+	return board_in.grid[to_file][to_rank].owner != board_in.to_move && board_in.grid[to_file][to_rank].type != VACANT;
+}
+
+//Returns whether or not the tile contains a piece owned by the moving player, or is empty
+bool board_moveable(board board_in, int to_file, int to_rank){
+	return board_in.grid[to_file][to_rank].owner != board_in.to_move || board_in.grid[to_file][to_rank].type == VACANT;
 }
 
 //******************************************************************
@@ -236,6 +431,7 @@ piece new_piece(int type, int owner){
 //							Move Functions							
 //******************************************************************
 
+//Returns a move, as defined by parameters
 move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote){
 	move out;
 	out.from_file = from_file;
@@ -245,10 +441,40 @@ move move_new(int from_file, int from_rank, int to_file, int to_rank, int promot
 	out.promote = promote;
 	return out;
 }
-
-//******************************************************************
-//							board_node Functions						
-//******************************************************************
+//Returns a move with the promote field set to 7, to indicate an undefined move
+move move_invalid(){
+	move out;
+	out.promote = 7;
+	return out;
+}
+//Converts a string which starts with a long algebraic chess move (which does not contain an x to mark captures),
+//delimited by either a space or a null character, into a move struct
+//Undefined behavior if given anything else
+move move_from_string(char *str){
+	move out;
+	out.from_file = *(str) - 97;
+	out.from_rank = *(str+1) - 97;
+	out.to_file = *(str+2) - 97;
+	out.to_rank = *(str+3) - 97;
+	switch(*(str+4)){
+		case 'q':
+			out.promote = QUEEN;
+			break;
+		case 'r':
+			out.promote = ROOK;
+			break;
+		case 'b':
+			out.promote = BISHOP;
+			break;
+		case 'n':
+			out.promote = KNIGHT;
+			break;
+		default:
+			out.promote = 0;
+			break;
+	}
+	return out;
+}
 
 //Creates a board_node from given parameters (makes move move_in on board board_in; does NOT copy board_in to board)
 //Only intended to be called by eval_board_node
@@ -259,7 +485,7 @@ board_node _board_node_new(board board_in, move move_in, int depth){
 	return out;
 }
 //Returns the calculated value of the given node, considering all its possible children to given max depth
-//TODO:Test & Document
+/*/TODO:Test & Document
 int eval_board_node(board_node node_in, int max_depth){
 	int out, child_value;
 	move_node* list_cur;
@@ -286,12 +512,7 @@ int eval_board_node(board_node node_in, int max_depth){
 		}
 	}
 	return out;
-}
-
-
-
-
-
+}*/
 
 
 

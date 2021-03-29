@@ -66,6 +66,17 @@ struct move{
 	unsigned int promote:3;
 };
 typedef struct move move;
+
+struct move_array{
+	move array[128];
+};
+typedef struct move_array move_array;
+
+struct board_array{
+	board array[128];
+};
+typedef struct board_array board_array;
+
 struct board_node{
 	//Stores the current board
 	board cur_board;
@@ -81,14 +92,16 @@ struct move_node{
 typedef struct move_node move_node;
 
 //Function declarations
-board board_new();
 board board_from_fen(char in[]);
 board _piece_move(struct board board_in, int from_file, int from_rank, int to_file, int to_rank);
 board board_move(struct board board_in, struct move move_in);
-move_node* moveboard_get_legal_moves(board in, int from_file, int from_rank);
-move_node* board_get_legal_move_list(board in);
+bool board_capturable(board board_in, int to_file, int to_rank);
+bool board_moveable(board board_in, int to_file, int to_rank);
 piece new_piece(int type, int owner);
 move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote);
-board_node move_node_new(int depth);
-int move_node_eval(board_node* node);
+move move_invalid();
+move move_from_string(char *str);
+int eval_board_node(board_node node, int max_depth);
+board_array board_legal_states(struct board board_in);
+move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank);
 
