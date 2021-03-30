@@ -1,5 +1,8 @@
 #include <stdio.h>
-#include "structures.h"
+#include "piece_funcs.h"
+#include "move_funcs.h"
+#include "board_funcs.h"
+#include "node_funcs.h"
 #include "analysis.h"
 
 //******************************************************************
@@ -9,7 +12,6 @@
 //Checks if the moving player is in check
 bool eval_check(board board_in){
 	int king_location_file, king_location_rank;
-	piece_array threats;
 	king_location_file = 0;
 	king_location_rank = 0;
 	//Iterate over grid until moving player's king is found
@@ -23,17 +25,14 @@ bool eval_check(board board_in){
 	}
 	end:
 	//Check if the opposing player could capture the king, were it their turn
-	threats = eval_array_captures(board_in, king_location_file, king_location_rank, !board_in.to_move);
-	//If the first entry doesn't contain a valid piece, then there are no valid threats to the given tile, so the king is not in check
-	//TODO: implement with king-specific function instead, to avoid unnecessarily calculating entire piece_array
-	return threats.array[0].type != 7;
+	return _eval_array_captures(board_in, king_location_file, king_location_rank, !board_in.to_move);
 }
 //Returns an array of all pieces the given player owns which could capture the given tile
 //Useful either to determine how threatened a tile is, or to determine how reinforced a tile is
 //TODO: Test
-piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool moving){
+piece* eval_array_captures(board board_in, int to_file, int to_rank, bool moving){
 	int temp_file, temp_rank, pieces_index;
-	piece_array array_out;
+	static piece array_out[64];
 	pieces_index = 0;
 	//Check for vertical attacks
 	//From above
@@ -45,7 +44,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[to_file][temp_rank].type == QUEEN || 
 				(board_in.grid[to_file][temp_rank].type == KING && to_rank + 1 == temp_rank)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[to_file][temp_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[to_file][temp_rank].type, moving);
 			}
 			break;
 		}
@@ -60,7 +59,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[to_file][temp_rank].type == QUEEN || 
 				(board_in.grid[to_file][temp_rank].type == KING && to_rank - 1 == temp_rank)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[to_file][temp_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[to_file][temp_rank].type, moving);
 			}
 			break;
 		}
@@ -76,7 +75,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[temp_file][to_rank].type == QUEEN || 
 				(board_in.grid[temp_file][to_rank].type == KING && to_file + 1 == temp_file)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][to_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[temp_file][to_rank].type, moving);
 			}
 			break;
 		}
@@ -91,7 +90,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[temp_file][to_rank].type == QUEEN || 
 				(board_in.grid[temp_file][to_rank].type == KING && to_file - 1 == temp_file)))
 					{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][to_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[temp_file][to_rank].type, moving);
 			}
 			break;
 		}
@@ -108,7 +107,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[temp_file][temp_rank].type == QUEEN || 
 				((board_in.grid[temp_file][temp_rank].type == KING || (!moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file + 1 == temp_file)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[temp_file][temp_rank].type, moving);
 			}
 			break;
 		}
@@ -125,7 +124,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[temp_file][temp_rank].type == QUEEN || 
 				((board_in.grid[temp_file][temp_rank].type == KING || (moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file + 1 == temp_file)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[temp_file][temp_rank].type, moving);
 			}
 			break;
 		}
@@ -144,7 +143,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				(!moving && board_in.grid[temp_file][temp_rank].type == PAWN))
 				&& to_file - 1 == temp_file)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[temp_file][temp_rank].type, moving);
 			}
 			break;
 		}
@@ -161,7 +160,7 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 				board_in.grid[temp_file][temp_rank].type == QUEEN || 
 				((board_in.grid[temp_file][temp_rank].type == KING || (moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file - 1 == temp_file)))
 				{
-				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+				array_out[pieces_index++] = piece_new(board_in.grid[temp_file][temp_rank].type, moving);
 			}
 			break;
 		}
@@ -171,28 +170,28 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 	//Check for knight attacks
 	//Counting clockwise:
 	//1
-	if(to_file+1 <= 7 && to_rank+2 <= 7 && board_in.grid[to_file+1][to_rank+2].type == KNIGHT && board_in.grid[to_file+1][to_rank+2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file+1 <= 7 && to_rank+2 <= 7 && board_in.grid[to_file+1][to_rank+2].type == KNIGHT && board_in.grid[to_file+1][to_rank+2].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//2
-	if(to_file+2 <= 7 && to_rank+1 <= 7 && board_in.grid[to_file+2][to_rank+1].type == KNIGHT && board_in.grid[to_file+2][to_rank+1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file+2 <= 7 && to_rank+1 <= 7 && board_in.grid[to_file+2][to_rank+1].type == KNIGHT && board_in.grid[to_file+2][to_rank+1].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//3
-	if(to_file+2 <= 7 && to_rank-1 >= 0 && board_in.grid[to_file+2][to_rank-1].type == KNIGHT && board_in.grid[to_file+2][to_rank-1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file+2 <= 7 && to_rank-1 >= 0 && board_in.grid[to_file+2][to_rank-1].type == KNIGHT && board_in.grid[to_file+2][to_rank-1].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//4
-	if(to_file+1 <= 7 && to_rank-2 >= 0 && board_in.grid[to_file+1][to_rank-2].type == KNIGHT && board_in.grid[to_file+1][to_rank-2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file+1 <= 7 && to_rank-2 >= 0 && board_in.grid[to_file+1][to_rank-2].type == KNIGHT && board_in.grid[to_file+1][to_rank-2].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//5
-	if(to_file-1 >= 0 && to_rank-2 >= 0 && board_in.grid[to_file-1][to_rank-2].type == KNIGHT && board_in.grid[to_file-1][to_rank-2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file-1 >= 0 && to_rank-2 >= 0 && board_in.grid[to_file-1][to_rank-2].type == KNIGHT && board_in.grid[to_file-1][to_rank-2].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//6
-	if(to_file-2 >= 0 && to_rank-1 >= 0 && board_in.grid[to_file-2][to_rank-1].type == KNIGHT && board_in.grid[to_file-2][to_rank-1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file-2 >= 0 && to_rank-1 >= 0 && board_in.grid[to_file-2][to_rank-1].type == KNIGHT && board_in.grid[to_file-2][to_rank-1].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//7
-	if(to_file-2 >= 0 && to_rank+1 <= 7 && board_in.grid[to_file-2][to_rank+1].type == KNIGHT && board_in.grid[to_file-2][to_rank+1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file-2 >= 0 && to_rank+1 <= 7 && board_in.grid[to_file-2][to_rank+1].type == KNIGHT && board_in.grid[to_file-2][to_rank+1].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//8
-	if(to_file-1 >= 0 && to_rank+2 <= 7 && board_in.grid[to_file-1][to_rank+2].type == KNIGHT && board_in.grid[to_file-1][to_rank+2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	if(to_file-1 >= 0 && to_rank+2 <= 7 && board_in.grid[to_file-1][to_rank+2].type == KNIGHT && board_in.grid[to_file-1][to_rank+2].owner == moving) array_out[pieces_index++] = piece_new(KNIGHT, moving);
 	//Check for en passant attack
 	if(board_in.en_passant_valid && to_file == board_in.en_passant_file && to_rank == board_in.en_passant_rank){
-		if(to_file >= 1 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file-1][to_rank].owner == moving && board_in.grid[to_file-1][to_rank].type == PAWN) array_out.array[pieces_index++] = new_piece(PAWN, moving);
-		if(to_file <= 6 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file+1][to_rank].owner == moving && board_in.grid[to_file+1][to_rank].type == PAWN) array_out.array[pieces_index++] = new_piece(PAWN, moving);
+		if(to_file >= 1 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file-1][to_rank].owner == moving && board_in.grid[to_file-1][to_rank].type == PAWN) array_out[pieces_index++] = piece_new(PAWN, moving);
+		if(to_file <= 6 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file+1][to_rank].owner == moving && board_in.grid[to_file+1][to_rank].type == PAWN) array_out[pieces_index++] = piece_new(PAWN, moving);
 	}
 	//Sets the entry after the last defined entry to an invalid move, to mark the end of the array
-	array_out.array[pieces_index] = piece_invalid();
+	array_out[pieces_index] = piece_invalid();
 	return array_out;
 }
 
@@ -354,8 +353,8 @@ bool _eval_array_captures(board board_in, int to_file, int to_rank, bool moving)
 	if(to_file-1 >= 0 && to_rank+2 <= 7 && board_in.grid[to_file-1][to_rank+2].type == KNIGHT && board_in.grid[to_file-1][to_rank+2].owner == moving) return true;
 	//Check for en passant attack
 	if(board_in.en_passant_valid && to_file == board_in.en_passant_file && to_rank == board_in.en_passant_rank){
-		if(to_file >= 1 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file-1][to_rank].owner == moving && board_in.grid[to_file-1][to_rank].type == PAWN) return true;;
-		if(to_file <= 6 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file+1][to_rank].owner == moving && board_in.grid[to_file+1][to_rank].type == PAWN) return true;;
+		if(to_file >= 1 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file-1][to_rank].owner == moving && board_in.grid[to_file-1][to_rank].type == PAWN) return true;
+		if(to_file <= 6 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file+1][to_rank].owner == moving && board_in.grid[to_file+1][to_rank].type == PAWN) return true;
 	}
 	return false;
 }
@@ -389,35 +388,35 @@ int eval_material(struct board boardstate){
 			switch(boardstate.grid[file][rank].type){
 				case PAWN:
 					if(boardstate.grid[file][rank].owner == 1){
-						out = out + 1;
+						out = out + 100;
 					}
 					else{
-						out = out - 1;
+						out = out - 100;
 					}
 					break;
 				case BISHOP:
 				case KNIGHT:
 					if(boardstate.grid[file][rank].owner == 1){
-						out = out + 3;
+						out = out + 300;
 					}
 					else{
-						out = out - 3;
+						out = out - 300;
 					}
 					break;
 				case ROOK:
 					if(boardstate.grid[file][rank].owner == 1){
-						out = out + 5;
+						out = out + 500;
 					}
 					else{
-						out = out - 5;
+						out = out - 500;
 					}
 					break;
 				case QUEEN:
 					if(boardstate.grid[file][rank].owner == 1){
-						out = out + 9;
+						out = out + 900;
 					}
 					else{
-						out = out - 9;
+						out = out - 900;
 					}
 					break;
 			}
@@ -431,5 +430,10 @@ int eval_material(struct board boardstate){
 //TODO:Develop some sort of positioning valuation algorithm, and implement
 //Considerations:check, threats, reinforcement, development, castling, control (esp. center), strength of bishops (blocked by pawns, open/closed game), open rooks, safety of kings
 int eval_position(struct board boardstate){
-	return 0;
+	//TODO: Inline eval_material, to avoid having to iterate over the grid twice
+	int out = eval_material(boardstate);
+	//Check is bad for the moving player
+	if(boardstate.to_move && eval_check(boardstate)) out -= 50;
+	else if(!boardstate.to_move && eval_check(boardstate)) out +=50;
+	return out;
 }

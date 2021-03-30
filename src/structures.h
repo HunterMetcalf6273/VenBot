@@ -5,6 +5,7 @@
 //	grid: Stores 8x8 grid of pieces
 //	move_node: stores a move, its value, its board, and 2 pointers, for use in the possible move tree
 //Also defines some keywords for use elsewhere
+#if !defined(VACANT)
 
 #include<stdbool.h>
 
@@ -30,6 +31,7 @@ struct piece{
 	bool owner;
 };
 typedef struct piece piece;
+
 //Stores properties of a single move
 //Castles must consist of the king moving to it's destination tile
 //Stores properties of a single boardstate
@@ -54,6 +56,7 @@ struct board{
 	bool en_passant_valid;
 };
 typedef struct board board;
+
 struct move{
 	//File and rank of moving piece, encoded as:
 	//a thru h = 0 thru 7 for file, 1 thru 8 = 0 thru 7 for rank*/
@@ -69,56 +72,19 @@ struct move{
 };
 typedef struct move move;
 
-struct move_array{
-	move array[128];
-};
-typedef struct move_array move_array;
-
-struct board_array{
-	board array[128];
-};
-typedef struct board_array board_array;
-
-struct piece_array{
-	piece array[17];
-};
-typedef struct piece_array piece_array;
-
-struct board_node{
+struct node{
 	//Stores the current board
-	board cur_board;
+	board sboard;
+	//Stores the mvoe that reached this board
+	move last_move;
 	//Stores the depth of this node
-	unsigned int depth:4;
+	unsigned int depth:7;
 };
-typedef struct board_node board_node;
+typedef struct node node;
 
-struct board_and_move_arrays{
-	board_array board_array;
-	move_array move_array;
+struct node_array{
+	node array[128];
 };
-typedef struct board_and_move_arrays board_and_move_arrays;
+typedef struct node_array node_array;
 
-struct move_node{
-	move stored_move;
-	struct move_node* next;
-};
-typedef struct move_node move_node;
-
-//Function declarations
-board board_from_fen(char in[]);
-board _piece_move(struct board board_in, int from_file, int from_rank, int to_file, int to_rank);
-board board_move(struct board board_in, struct move move_in);
-bool board_capturable(board board_in, int to_file, int to_rank);
-bool board_moveable(board board_in, int to_file, int to_rank);
-piece new_piece(int type, int owner);
-piece piece_invalid();
-move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote);
-move move_invalid();
-move move_from_string(char *str);
-void move_to_string(move move_in, char* out);
-int eval_board_node(board_node node, int max_depth, int alpha, int beta);
-board_array board_legal_states(struct board board_in);
-move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank);
-bool board_empty(board board_in, int to_file, int to_rank);
-board_and_move_arrays board_legal_states_and_moves(struct board board_in);
-board_node board_node_new(board board_in, int depth);
+#endif
