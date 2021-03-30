@@ -425,6 +425,22 @@ move_array board_piece_possible_moves(struct board board_in, int from_file, int 
 			if(not_right && board_moveable(board_in, from_file+1, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank, 0);
 			//Left
 			if(not_left && board_moveable(board_in, from_file-1, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank, 0);
+			//Castling
+			/*
+			 * threats = eval_array_captures(board_in, king_location_file, king_location_rank, !board_in.to_move);
+	//If the first entry doesn't contain a valid piece, then there are no valid threats to the given tile, so the king is not in check
+	//TODO: implement with king-specific function instead, to avoid unnecessarily calculating entire piece_array
+	return threats.array[0].type != 7;*/
+			//Kingside:
+			if((board_in.to_move && board_in.white_kingside) || (!board_in.to_move && board_in.black_kingside)){
+				if(((!_eval_array_captures(board_in, from_file, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file+1, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file+2, from_rank, board_in.to_move))) &&
+					board_in.grid[from_file+1][from_rank].type == VACANT && board_in.grid[from_file+2][from_rank].type == VACANT) move_new(from_file, from_rank, from_file+2, from_rank, 0);
+			}
+			//Queenside:
+			if((board_in.to_move && board_in.white_queenside) || (!board_in.to_move && board_in.black_queenside)){
+				if(((!_eval_array_captures(board_in, from_file, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file-1, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file-2, from_rank, board_in.to_move))) &&
+					board_in.grid[from_file-1][from_rank].type == VACANT && board_in.grid[from_file-2][from_rank].type == VACANT && board_in.grid[from_file-3][from_rank].type == VACANT) move_new(from_file, from_rank, from_file+2, from_rank, 0);
+			}
 			break;
 		case QUEEN:
 			//Vertical
@@ -751,7 +767,7 @@ board_node _board_node_new(board board_in, move move_in, int depth){
 	return out;
 }
 
-int eval_board_node(board_node node_in, int max_depth){
+int eval_board_node(board_node node_in, int max_depth, int alpha, int beta){
 	int out, child_value, states_index;
 	board_array states;
 	states_index = 0;
@@ -764,8 +780,10 @@ int eval_board_node(board_node node_in, int max_depth){
 		if(node_in.cur_board.to_move != BLACK){
 			out = -2147483648;
 			while(states.array[states_index].draw_counter != 127){
-				child_value = eval_board_node(board_node_new(states.array[states_index], node_in.depth + 1), max_depth);
+				child_value = eval_board_node(board_node_new(states.array[states_index], node_in.depth + 1), max_depth, alpha, beta);
 				if(child_value > out) out = child_value;
+				if(out > alpha) alpha = out;
+				if(beta <= alpha) break;
 				states_index++;
 			}
 		}
@@ -773,8 +791,10 @@ int eval_board_node(board_node node_in, int max_depth){
 		else{
 			out = 2147483647;
 			while(states.array[states_index].draw_counter != 127){
-				child_value = eval_board_node(board_node_new(states.array[states_index], node_in.depth + 1), max_depth);
+				child_value = eval_board_node(board_node_new(states.array[states_index], node_in.depth + 1), max_depth, alpha, beta);
 				if(child_value < out) out = child_value;
+				if(out <= beta) beta = out;
+				if(beta <= alpha) break;
 				states_index++;
 			}
 		}

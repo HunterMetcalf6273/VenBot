@@ -195,6 +195,170 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 	array_out.array[pieces_index] = piece_invalid();
 	return array_out;
 }
+
+//Special version of eval_array_captures which only returns whether or not any capture exists, not from what kind of piece
+//Useful for check detection, primarily
+//TODO: Test
+bool _eval_array_captures(board board_in, int to_file, int to_rank, bool moving){
+	int temp_file, temp_rank;
+	//Check for vertical attacks
+	//From above
+	temp_rank = to_rank+1;
+	while(temp_rank <= 7){
+		if(board_in.grid[to_file][temp_rank].type != VACANT){
+			if(board_in.grid[to_file][temp_rank].owner == moving && 
+				(board_in.grid[to_file][temp_rank].type == ROOK || 
+				board_in.grid[to_file][temp_rank].type == QUEEN || 
+				(board_in.grid[to_file][temp_rank].type == KING && to_rank + 1 == temp_rank)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_rank++;
+	}
+	//From below
+	temp_rank = to_rank-1;
+	while(temp_rank >= 0){
+		if(board_in.grid[to_file][temp_rank].type != VACANT){
+			if(board_in.grid[to_file][temp_rank].owner == moving && 
+				(board_in.grid[to_file][temp_rank].type == ROOK || 
+				board_in.grid[to_file][temp_rank].type == QUEEN || 
+				(board_in.grid[to_file][temp_rank].type == KING && to_rank - 1 == temp_rank)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_rank--;
+	}
+	//Check for horizontal attacks
+	//From the right
+	temp_file = to_file+1;
+	while(temp_file <= 7){
+		if(board_in.grid[temp_file][to_rank].type != VACANT){
+			if(board_in.grid[temp_file][to_rank].owner == moving && 
+				(board_in.grid[temp_file][to_rank].type == ROOK || 
+				board_in.grid[temp_file][to_rank].type == QUEEN || 
+				(board_in.grid[temp_file][to_rank].type == KING && to_file + 1 == temp_file)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_file++;
+	}
+	//From the left
+	temp_file = to_file-1;
+	while(temp_file >= 0){
+		if(board_in.grid[temp_file][to_rank].type != VACANT){
+			if(board_in.grid[temp_file][to_rank].owner == moving && 
+				(board_in.grid[temp_file][to_rank].type == ROOK || 
+				board_in.grid[temp_file][to_rank].type == QUEEN || 
+				(board_in.grid[temp_file][to_rank].type == KING && to_file - 1 == temp_file)))
+					{
+				return true;
+			}
+			break;
+		}
+		temp_file--;
+	}
+	//Check for diagonal attacks
+	//Up-Right
+	temp_file = to_file+1;
+	temp_rank = to_rank+1;
+	while(temp_file <= 7 && temp_rank <=7){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING || (!moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file + 1 == temp_file)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_file++;
+		temp_rank++;
+	}
+	//Down-Right
+	temp_file = to_file+1;
+	temp_rank = to_rank-1;
+	while(temp_file <= 7 && temp_rank >=0){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING || (moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file + 1 == temp_file)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_file++;
+		temp_rank--;
+	}
+	//Up-Left
+	temp_file = to_file-1;
+	temp_rank = to_rank+1;
+	while(temp_file >= 0 && temp_rank <=7){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING ||
+				(!moving && board_in.grid[temp_file][temp_rank].type == PAWN))
+				&& to_file - 1 == temp_file)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_file--;
+		temp_rank++;
+	}
+	//Down-Left
+	temp_file = to_file-1;
+	temp_rank = to_rank-1;
+	while(temp_file >= 0 && temp_rank >=0){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING || (moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file - 1 == temp_file)))
+				{
+				return true;
+			}
+			break;
+		}
+		temp_file--;
+		temp_rank--;
+	}
+	//Check for knight attacks
+	//Counting clockwise:
+	//1
+	if(to_file+1 <= 7 && to_rank+2 <= 7 && board_in.grid[to_file+1][to_rank+2].type == KNIGHT && board_in.grid[to_file+1][to_rank+2].owner == moving) return true;
+	//2
+	if(to_file+2 <= 7 && to_rank+1 <= 7 && board_in.grid[to_file+2][to_rank+1].type == KNIGHT && board_in.grid[to_file+2][to_rank+1].owner == moving) return true;
+	//3
+	if(to_file+2 <= 7 && to_rank-1 >= 0 && board_in.grid[to_file+2][to_rank-1].type == KNIGHT && board_in.grid[to_file+2][to_rank-1].owner == moving) return true;
+	//4
+	if(to_file+1 <= 7 && to_rank-2 >= 0 && board_in.grid[to_file+1][to_rank-2].type == KNIGHT && board_in.grid[to_file+1][to_rank-2].owner == moving) return true;
+	//5
+	if(to_file-1 >= 0 && to_rank-2 >= 0 && board_in.grid[to_file-1][to_rank-2].type == KNIGHT && board_in.grid[to_file-1][to_rank-2].owner == moving) return true;
+	//6
+	if(to_file-2 >= 0 && to_rank-1 >= 0 && board_in.grid[to_file-2][to_rank-1].type == KNIGHT && board_in.grid[to_file-2][to_rank-1].owner == moving) return true;
+	//7
+	if(to_file-2 >= 0 && to_rank+1 <= 7 && board_in.grid[to_file-2][to_rank+1].type == KNIGHT && board_in.grid[to_file-2][to_rank+1].owner == moving) return true;
+	//8
+	if(to_file-1 >= 0 && to_rank+2 <= 7 && board_in.grid[to_file-1][to_rank+2].type == KNIGHT && board_in.grid[to_file-1][to_rank+2].owner == moving) return true;
+	//Check for en passant attack
+	if(board_in.en_passant_valid && to_file == board_in.en_passant_file && to_rank == board_in.en_passant_rank){
+		if(to_file >= 1 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file-1][to_rank].owner == moving && board_in.grid[to_file-1][to_rank].type == PAWN) return true;;
+		if(to_file <= 6 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file+1][to_rank].owner == moving && board_in.grid[to_file+1][to_rank].type == PAWN) return true;;
+	}
+	return false;
+}
 //******************************************************************
 //					Board Analyisis Functions						
 //******************************************************************

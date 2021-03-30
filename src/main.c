@@ -44,7 +44,7 @@ void main(int argc, char **argv){
 			while(moves_and_states.board_array.array[cur_index].draw_counter != 127){
 				fprintf(stdout, "info currmovenumber %d\n", cur_index+1);
 				fflush(stdout);
-				temp_val = eval_board_node(board_node_new(moves_and_states.board_array.array[cur_index], 1), max_depth);
+				temp_val = eval_board_node(board_node_new(moves_and_states.board_array.array[cur_index], 1), max_depth, BLACK_CHECKMATE, WHITE_CHECKMATE);
 				if((cur_board.to_move && temp_val > best_val) || (!cur_board.to_move && temp_val < best_val)){
 					best_val = temp_val;
 					best_index = cur_index;

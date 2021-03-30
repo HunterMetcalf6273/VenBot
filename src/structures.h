@@ -116,7 +116,7 @@ move move_new(int from_file, int from_rank, int to_file, int to_rank, int promot
 move move_invalid();
 move move_from_string(char *str);
 void move_to_string(move move_in, char* out);
-int eval_board_node(board_node node, int max_depth);
+int eval_board_node(board_node node, int max_depth, int alpha, int beta);
 board_array board_legal_states(struct board board_in);
 move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank);
 bool board_empty(board board_in, int to_file, int to_rank);
