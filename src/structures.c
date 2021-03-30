@@ -215,6 +215,8 @@ board_array board_legal_states(struct board board_in){
 				temp = board_piece_possible_moves(board_in, file, rank);
 				temp_index = 0;
 				while(temp.array[temp_index].promote != 7){
+					//TESTING
+					fprintf(stdout, "%d%d %d%d\n", temp.array[temp_index].from_file, temp.array[temp_index].from_rank, temp.array[temp_index].to_file, temp.array[temp_index].to_rank);
 					pre_check.array[pre_check_index++] = board_move(board_in, temp.array[temp_index++]);
 				}
 			}
@@ -225,7 +227,10 @@ board_array board_legal_states(struct board board_in){
 	temp_index = 0;
 	//Removes all moves which put the moving player into check
 	while(pre_check.array[pre_check_index].draw_counter != 127){
-		if(!eval_check(pre_check.array[pre_check_index])) out.array[temp_index++] = pre_check.array[pre_check_index];
+		pre_check.array[pre_check_index].to_move = !pre_check.array[pre_check_index].to_move;
+		if(!eval_check(pre_check.array[pre_check_index])){
+			out.array[temp_index++] = pre_check.array[pre_check_index];
+		}
 		pre_check_index++;
 	}
 	out.array[temp_index] = board_invalid();
@@ -235,10 +240,9 @@ board_array board_legal_states(struct board board_in){
 //Returns a move_array of all possible "legal" (not considering check) moves from given position, by piece at given location
 //Assumes that given piece is actually able to move this turn (does not respect board_in.to_move, except for pawn movement direction)
 //Final entry in array marked by invalid move (promote = 7)
-//TODO: Implement
 move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank){
-	int out_index;
-	bool temp_file, temp_rank, not_top, not_bottom, not_right, not_left;
+	int out_index, temp_file, temp_rank;
+	bool not_top, not_bottom, not_right, not_left;
 	move_array out;
 	out_index = 0;
 	switch(board_in.grid[from_file][from_rank].type){
@@ -259,7 +263,7 @@ move_array board_piece_possible_moves(struct board board_in, int from_file, int 
 					}else{
 						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+1, 0);
 						//Double move
-						if(from_rank == 1 && board_in.grid[from_file][from_rank+2].type == VACANT) move_new(from_file, from_rank, from_file, from_rank+2, 0);
+						if(from_rank == 1 && board_in.grid[from_file][from_rank+2].type == VACANT) out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank+2, 0);
 					}
 				}
 				//Captures
@@ -312,7 +316,7 @@ move_array board_piece_possible_moves(struct board board_in, int from_file, int 
 					}else{
 						out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-1, 0);
 						//Double move
-						if(from_rank == 6 && board_in.grid[from_file][from_rank-2].type == VACANT) move_new(from_file, from_rank, from_file, from_rank-2, 0);
+						if(from_rank == 6 && board_in.grid[from_file][from_rank-2].type == VACANT) out.array[out_index++] = move_new(from_file, from_rank, from_file, from_rank-2, 0);
 					}
 				}
 				//Captures
@@ -351,6 +355,7 @@ move_array board_piece_possible_moves(struct board board_in, int from_file, int 
 					}
 				}
 			}
+			break;
 		case KING:
 			not_top = from_rank < 7;
 			not_bottom = from_rank > 0;
@@ -380,29 +385,218 @@ move_array board_piece_possible_moves(struct board board_in, int from_file, int 
 			if(not_left && board_moveable(board_in, from_file-1, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank, 0);
 			break;
 		case QUEEN:
-			not_top = from_rank < 7;
-			not_bottom = from_rank > 0;
-			not_right = from_file < 7;
-			not_left = from_file > 0;
+			//Vertical
+			//Up
+			temp_rank = from_rank+1;
+			while(temp_rank <= 7){
+				if(board_empty(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+					break;
+				}
+				temp_rank++;
+			}
+			//Down
+			temp_rank = from_rank-1;
+			while(temp_rank >= 0){
+				if(board_empty(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+					break;
+				}
+				temp_rank--;
+			}
+			//Horizontal
+			//Right
+			temp_file = from_file+1;
+			while(temp_file <= 7){
+				if(board_empty(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+					break;
+				}
+				temp_file++;
+			}
+			//Left
+			temp_file = from_file-1;
+			while(temp_file >= 0){
+				if(board_empty(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+					break;
+				}
+				temp_file--;
+			}
+			//Diagonal
+			//Up-Right
+			temp_file = from_file+1;
+			temp_rank = from_rank+1;
+			while(temp_file <= 7 && temp_rank <= 7){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file++;
+				temp_rank++;
+			}
+			//Up-Left
+			temp_file = from_file-1;
+			temp_rank = from_rank+1;
+			while(temp_file >= 0 && temp_rank <= 7){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file--;
+				temp_rank++;
+			}
+			//Down-Left
+			temp_file = from_file-1;
+			temp_rank = from_rank-1;
+			while(temp_file >= 0 && temp_rank >= 0){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file--;
+				temp_rank--;
+			}
+			//Down-Right
+			temp_file = from_file+1;
+			temp_rank = from_rank-1;
+			while(temp_file <= 7 && temp_rank >= 0){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file++;
+				temp_rank--;
+			}
+			break;
 		case ROOK:
-			not_top = from_rank < 7;
-			not_bottom = from_rank > 0;
-			not_right = from_file < 7;
-			not_left = from_file > 0;
+			//Up
+			temp_rank = from_rank+1;
+			while(temp_rank <= 7){
+				if(board_empty(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+					break;
+				}
+				temp_rank++;
+			}
+			//Down
+			temp_rank = from_rank-1;
+			while(temp_rank >= 0){
+				if(board_empty(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, from_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, from_file, temp_rank, 0);
+					break;
+				}
+				temp_rank--;
+			}
+			//Horizontal
+			//Right
+			temp_file = from_file+1;
+			while(temp_file <= 7){
+				if(board_empty(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+					break;
+				}
+				temp_file++;
+			}
+			//Left
+			temp_file = from_file-1;
+			while(temp_file >= 0){
+				if(board_empty(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, from_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, from_rank, 0);
+					break;
+				}
+				temp_file--;
+			}
+			break;
 		case BISHOP:
-			not_top = from_rank < 7;
-			not_bottom = from_rank > 0;
-			not_right = from_file < 7;
-			not_left = from_file > 0;
+			//Up-Right
+			temp_file = from_file+1;
+			temp_rank = from_rank+1;
+			while(temp_file <= 7 && temp_rank <= 7){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file++;
+				temp_rank++;
+			}
+			//Up-Left
+			temp_file = from_file-1;
+			temp_rank = from_rank+1;
+			while(temp_file >= 0 && temp_rank <= 7){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file--;
+				temp_rank++;
+			}
+			//Down-Left
+			temp_file = from_file-1;
+			temp_rank = from_rank-1;
+			while(temp_file >= 0 && temp_rank >= 0){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file--;
+				temp_rank--;
+			}
+			//Down-Right
+			temp_file = from_file+1;
+			temp_rank = from_rank-1;
+			while(temp_file <= 7 && temp_rank >= 0){
+				if(board_empty(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+				else{
+					if(board_capturable(board_in, temp_file, temp_rank)) out.array[out_index++] = move_new(from_file, from_rank, temp_file, temp_rank, 0);
+					break;
+				}
+				temp_file++;
+				temp_rank--;
+			}
+			break;
 		case KNIGHT:
-			not_top = from_rank < 6;
-			not_bottom = from_rank > 1;
-			not_right = from_file < 6;
-			not_left = from_file > 1;
+			//Counting clockwise:
+			//1
+			if(from_file+1 <= 7 && from_rank+2 <= 7 && board_moveable(board_in, from_file+1, from_rank+2)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank+2, 0);
+			//2
+			if(from_file+2 <= 7 && from_rank+1 <= 7 && board_moveable(board_in, from_file+2, from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file+2, from_rank+1, 0);
+			//3
+			if(from_file+2 <= 7 && from_rank-1 >= 0 && board_moveable(board_in, from_file+2, from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file+2, from_rank-1, 0);
+			//4
+			if(from_file+1 <= 7 && from_rank-2 >= 0 && board_moveable(board_in, from_file+1, from_rank-2)) out.array[out_index++] = move_new(from_file, from_rank, from_file+1, from_rank-2, 0);
+			//5
+			if(from_file-1 >= 0 && from_rank-2 >= 0 && board_moveable(board_in, from_file-1, from_rank-2)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank-2, 0);
+			//6
+			if(from_file-2 >= 0 && from_rank-1 >= 0 && board_moveable(board_in, from_file-2, from_rank-1)) out.array[out_index++] = move_new(from_file, from_rank, from_file-2, from_rank-1, 0);
+			//7
+			if(from_file-2 >= 0 && from_rank+1 <= 7 && board_moveable(board_in, from_file-2, from_rank+1)) out.array[out_index++] = move_new(from_file, from_rank, from_file-2, from_rank+1, 0);
+			//8
+			if(from_file-1 >= 0 && from_rank+2 <= 7 && board_moveable(board_in, from_file-1, from_rank+2)) out.array[out_index++] = move_new(from_file, from_rank, from_file-1, from_rank+2, 0);
 			break;
 	}
 	out.array[out_index] = move_invalid();
 	return out;
+}
+
+//Returns whether or not the given position is vacant
+bool board_empty(board board_in, int to_file, int to_rank){
+	return board_in.grid[to_file][to_rank].type == VACANT;
 }
 
 //Returns whether or not the given tile contains a piece not owned by the moving player
@@ -410,7 +604,7 @@ bool board_capturable(board board_in, int to_file, int to_rank){
 	return board_in.grid[to_file][to_rank].owner != board_in.to_move && board_in.grid[to_file][to_rank].type != VACANT;
 }
 
-//Returns whether or not the tile contains a piece owned by the moving player, or is empty
+//Returns whether or not the tile contains a piece owned by the non-moving player, or is empty
 bool board_moveable(board board_in, int to_file, int to_rank){
 	return board_in.grid[to_file][to_rank].owner != board_in.to_move || board_in.grid[to_file][to_rank].type == VACANT;
 }
@@ -424,6 +618,13 @@ piece new_piece(int type, int owner){
 	piece out;
 	out.type = type;
 	out.owner = owner;
+	return out;
+}
+
+//Returns an invalid piece (type == 7)
+piece piece_invalid(){
+	piece out;
+	out.type = 7;
 	return out;
 }
 

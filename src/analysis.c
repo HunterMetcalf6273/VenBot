@@ -9,92 +9,202 @@
 //Checks if the moving player is in check
 bool eval_check(board board_in){
 	int king_location_file, king_location_rank;
-	move_array moves;
+	piece_array threats;
 	king_location_file = 0;
 	king_location_rank = 0;
 	//Iterate over grid until moving player's king is found
 	while(king_location_file < 8){
 		while(king_location_rank < 8){
-			if(board_in.grid[king_location_file][king_location_rank].type == KING && board_in.grid[king_location_file][king_location_rank].owner == board_in.to_move) break;
+			if(board_in.grid[king_location_file][king_location_rank].type == KING && board_in.grid[king_location_file][king_location_rank].owner == board_in.to_move) goto end;
 			king_location_rank++;
 		}
+		king_location_rank = 0;
 		king_location_file++;
 	}
-	//Flip to_move bool, then check if king can be captured
-	board_in.to_move = !board_in.to_move;
-	moves = eval_array_threats(board_in, king_location_file, king_location_rank);
-	//If the first entry doesn't contain a valid move, then there are no valid threats to the given tile, so the king is not in check
-	//TODO: implement with king-specific function instead, to avoid unnecessary calculations
-	return moves.array[0].promote != 7;
+	end:
+	//Check if the opposing player could capture the king, were it their turn
+	threats = eval_array_captures(board_in, king_location_file, king_location_rank, !board_in.to_move);
+	//If the first entry doesn't contain a valid piece, then there are no valid threats to the given tile, so the king is not in check
+	//TODO: implement with king-specific function instead, to avoid unnecessarily calculating entire piece_array
+	return threats.array[0].type != 7;
 }
-//Returns an array of all moves the moving player could make which capture the given tile
-//TODO: Implement
-move_array eval_array_threats(board board_in, int to_file, int to_rank){
-	int temp_file, temp_rank, moves_index;
-	bool moving;
-	move_array array_out;
-	moves_index = 0;
-	moving = board_in.to_move;
+//Returns an array of all pieces the given player owns which could capture the given tile
+//Useful either to determine how threatened a tile is, or to determine how reinforced a tile is
+//TODO: Test
+piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool moving){
+	int temp_file, temp_rank, pieces_index;
+	piece_array array_out;
+	pieces_index = 0;
 	//Check for vertical attacks
 	//From above
 	temp_rank = to_rank+1;
-	while(temp_rank++ <= 7){
+	while(temp_rank <= 7){
 		if(board_in.grid[to_file][temp_rank].type != VACANT){
-			if(board_in.grid[to_file][temp_rank].owner != moving && (board_in.grid[to_file][temp_rank].type == ROOK || board_in.grid[to_file][temp_rank].type == QUEEN || board_in.grid[to_file][temp_rank].type == KING)){
-				array_out.array[moves_index++] = move_new(to_file, temp_rank, to_file, to_rank, 0);
+			if(board_in.grid[to_file][temp_rank].owner == moving && 
+				(board_in.grid[to_file][temp_rank].type == ROOK || 
+				board_in.grid[to_file][temp_rank].type == QUEEN || 
+				(board_in.grid[to_file][temp_rank].type == KING && to_rank + 1 == temp_rank)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[to_file][temp_rank].type, moving);
 			}
 			break;
 		}
+		temp_rank++;
 	}
 	//From below
 	temp_rank = to_rank-1;
-	while(temp_rank-- >= 0){
+	while(temp_rank >= 0){
 		if(board_in.grid[to_file][temp_rank].type != VACANT){
-			if(board_in.grid[to_file][temp_rank].owner != moving && (board_in.grid[to_file][temp_rank].type == ROOK || board_in.grid[to_file][temp_rank].type == QUEEN || board_in.grid[to_file][temp_rank].type == KING)){
-				array_out.array[moves_index++] = move_new(to_file, temp_rank, to_file, to_rank, 0);
+			if(board_in.grid[to_file][temp_rank].owner == moving && 
+				(board_in.grid[to_file][temp_rank].type == ROOK || 
+				board_in.grid[to_file][temp_rank].type == QUEEN || 
+				(board_in.grid[to_file][temp_rank].type == KING && to_rank - 1 == temp_rank)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[to_file][temp_rank].type, moving);
 			}
 			break;
 		}
+		temp_rank--;
 	}
 	//Check for horizontal attacks
 	//From the right
 	temp_file = to_file+1;
-	while(temp_rank++ <= 7){
+	while(temp_file <= 7){
 		if(board_in.grid[temp_file][to_rank].type != VACANT){
-			if(board_in.grid[temp_file][to_rank].owner != moving && (board_in.grid[temp_file][to_rank].type == ROOK || board_in.grid[temp_file][to_rank].type == QUEEN || board_in.grid[temp_file][to_rank].type == KING)){
-				array_out.array[moves_index++] = move_new(temp_file, to_rank, to_file, to_rank, 0);
+			if(board_in.grid[temp_file][to_rank].owner == moving && 
+				(board_in.grid[temp_file][to_rank].type == ROOK || 
+				board_in.grid[temp_file][to_rank].type == QUEEN || 
+				(board_in.grid[temp_file][to_rank].type == KING && to_file + 1 == temp_file)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][to_rank].type, moving);
 			}
 			break;
 		}
+		temp_file++;
 	}
 	//From the left
 	temp_file = to_file-1;
-	while(temp_rank-- >= 0){
+	while(temp_file >= 0){
 		if(board_in.grid[temp_file][to_rank].type != VACANT){
-			if(board_in.grid[temp_file][to_rank].owner != moving && (board_in.grid[temp_file][to_rank].type == ROOK || board_in.grid[temp_file][to_rank].type == QUEEN || board_in.grid[temp_file][to_rank].type == KING)){
-				array_out.array[moves_index++] = move_new(temp_file, to_rank, to_file, to_rank, 0);
+			if(board_in.grid[temp_file][to_rank].owner == moving && 
+				(board_in.grid[temp_file][to_rank].type == ROOK || 
+				board_in.grid[temp_file][to_rank].type == QUEEN || 
+				(board_in.grid[temp_file][to_rank].type == KING && to_file - 1 == temp_file)))
+					{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][to_rank].type, moving);
 			}
 			break;
 		}
+		temp_file--;
 	}
 	//Check for diagonal attacks
-	
+	//Up-Right
+	temp_file = to_file+1;
+	temp_rank = to_rank+1;
+	while(temp_file <= 7 && temp_rank <=7){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING || (!moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file + 1 == temp_file)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+			}
+			break;
+		}
+		temp_file++;
+		temp_rank++;
+	}
+	//Down-Right
+	temp_file = to_file+1;
+	temp_rank = to_rank-1;
+	while(temp_file <= 7 && temp_rank >=0){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING || (moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file + 1 == temp_file)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+			}
+			break;
+		}
+		temp_file++;
+		temp_rank--;
+	}
+	//Up-Left
+	temp_file = to_file-1;
+	temp_rank = to_rank+1;
+	while(temp_file >= 0 && temp_rank <=7){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING ||
+				(!moving && board_in.grid[temp_file][temp_rank].type == PAWN))
+				&& to_file - 1 == temp_file)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+			}
+			break;
+		}
+		temp_file--;
+		temp_rank++;
+	}
+	//Down-Left
+	temp_file = to_file-1;
+	temp_rank = to_rank-1;
+	while(temp_file >= 0 && temp_rank >=0){
+		if(board_in.grid[temp_file][temp_rank].type != VACANT){
+			if(board_in.grid[temp_file][temp_rank].owner == moving && (
+				board_in.grid[temp_file][temp_rank].type == BISHOP || 
+				board_in.grid[temp_file][temp_rank].type == QUEEN || 
+				((board_in.grid[temp_file][temp_rank].type == KING || (moving && board_in.grid[temp_file][temp_rank].type == PAWN))&& to_file - 1 == temp_file)))
+				{
+				array_out.array[pieces_index++] = new_piece(board_in.grid[temp_file][temp_rank].type, moving);
+			}
+			break;
+		}
+		temp_file--;
+		temp_rank--;
+	}
 	//Check for knight attacks
-	
+	//Counting clockwise:
+	//1
+	if(to_file+1 <= 7 && to_rank+2 <= 7 && board_in.grid[to_file+1][to_rank+2].type == KNIGHT && board_in.grid[to_file+1][to_rank+2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//2
+	if(to_file+2 <= 7 && to_rank+1 <= 7 && board_in.grid[to_file+2][to_rank+1].type == KNIGHT && board_in.grid[to_file+2][to_rank+1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//3
+	if(to_file+2 <= 7 && to_rank-1 >= 0 && board_in.grid[to_file+2][to_rank-1].type == KNIGHT && board_in.grid[to_file+2][to_rank-1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//4
+	if(to_file+1 <= 7 && to_rank-2 >= 0 && board_in.grid[to_file+1][to_rank-2].type == KNIGHT && board_in.grid[to_file+1][to_rank-2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//5
+	if(to_file-1 >= 0 && to_rank-2 >= 0 && board_in.grid[to_file-1][to_rank-2].type == KNIGHT && board_in.grid[to_file-1][to_rank-2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//6
+	if(to_file-2 >= 0 && to_rank-1 >= 0 && board_in.grid[to_file-2][to_rank-1].type == KNIGHT && board_in.grid[to_file-2][to_rank-1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//7
+	if(to_file-2 >= 0 && to_rank+1 <= 7 && board_in.grid[to_file-2][to_rank+1].type == KNIGHT && board_in.grid[to_file-2][to_rank+1].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
+	//8
+	if(to_file-1 >= 0 && to_rank+2 <= 7 && board_in.grid[to_file-1][to_rank+2].type == KNIGHT && board_in.grid[to_file-1][to_rank+2].owner == moving) array_out.array[pieces_index++] = new_piece(KNIGHT, moving);
 	//Check for en passant attack
-	
+	if(board_in.en_passant_valid && to_file == board_in.en_passant_file && to_rank == board_in.en_passant_rank){
+		if(to_file >= 1 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file-1][to_rank].owner == moving && board_in.grid[to_file-1][to_rank].type == PAWN) array_out.array[pieces_index++] = new_piece(PAWN, moving);
+		if(to_file <= 6 && board_in.grid[to_file][to_rank].owner == !moving && board_in.grid[to_file+1][to_rank].owner == moving && board_in.grid[to_file+1][to_rank].type == PAWN) array_out.array[pieces_index++] = new_piece(PAWN, moving);
+	}
 	//Sets the entry after the last defined entry to an invalid move, to mark the end of the array
-	array_out.array[moves_index] = move_invalid();
+	array_out.array[pieces_index] = piece_invalid();
 	return array_out;
 }
 //******************************************************************
 //					Board Analyisis Functions						
 //******************************************************************
-//Checks if the given position is checkmate (assuming it is already check)
-//Undefined behavior if moving player is not in check
+//Given a position with no legal moves, determines the winner
+//0 = black, 1 = white, -1 = draw
+//Undefined behavior if given a position with legal moves
 //TODO: Implement
-int eval_checkmate(struct board boardstate){
-	return 0;
+int eval_result(struct board boardstate){
+	if(eval_check(boardstate)) return !boardstate.to_move;
+	return -1;
 }
 
 //Returns material evaluation in centipawns, where:

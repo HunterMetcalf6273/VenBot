@@ -7,6 +7,7 @@ void main(int argc, char **argv){
 	char input[1024];
 	char* pointer;
 	board cur_board;
+	board_array test;
 	int max_depth = 8;
 	//Unimplemented commands: debug, setoption, register, ucinewgame, stop, ponderhit, info
 	while(1){
@@ -25,8 +26,7 @@ void main(int argc, char **argv){
 			if(strncmp(input, "position startpos", 17) == 0) cur_board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 			else cur_board = board_from_fen(pointer);
 			pointer = strstr(pointer, "moves")+6;
-			//TODO: Investigate whether or not pointer will always equal 1 on a failed strstr, depending on platform and input
-			while(pointer != 1){
+			while(pointer -6 != NULL && pointer - 1 != NULL){
 				cur_board = board_move(cur_board, move_from_string(pointer));
 				pointer = strchr(pointer, ' ') + 1;
 			}
@@ -39,6 +39,24 @@ void main(int argc, char **argv){
 		//Exit program
 		else if(strncmp(input, "quit", 4) == 0){
 			return;
+		}
+		//Testing:
+		else if(strncmp(input, "check", 4) == 0){
+			if(eval_check(cur_board)) fprintf(stdout, "%d is in check\n", cur_board.to_move);
+			else fprintf(stdout, "%d is not in check\n", cur_board.to_move);
+			fflush(stdout);
+		}
+		else if(strncmp(input, "boards", 6) == 0){
+				test = board_legal_states(cur_board);
+				int out = 0;
+				while(test.array[out].draw_counter != 127){
+					out++;
+				}
+				fprintf(stdout, "done, calculated %d boardstates\n", out);
+				if(out == 0){
+					fprintf(stdout, "end state, result: %d\n", eval_result(cur_board));
+				}
+				fflush(stdout);
 		}
 	}
 }

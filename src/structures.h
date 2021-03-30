@@ -77,6 +77,11 @@ struct board_array{
 };
 typedef struct board_array board_array;
 
+struct piece_array{
+	piece array[17];
+};
+typedef struct piece_array piece_array;
+
 struct board_node{
 	//Stores the current board
 	board cur_board;
@@ -98,10 +103,11 @@ board board_move(struct board board_in, struct move move_in);
 bool board_capturable(board board_in, int to_file, int to_rank);
 bool board_moveable(board board_in, int to_file, int to_rank);
 piece new_piece(int type, int owner);
+piece piece_invalid();
 move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote);
 move move_invalid();
 move move_from_string(char *str);
 int eval_board_node(board_node node, int max_depth);
 board_array board_legal_states(struct board board_in);
 move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank);
-
+bool board_empty(board board_in, int to_file, int to_rank);
