@@ -17,6 +17,8 @@
 #define KNIGHT 6
 #define WHITE 1
 #define BLACK 0
+#define WHITE_CHECKMATE 2147483647
+#define BLACK_CHECKMATE -2147483648
 
 //Stores properties of a single piece
 struct piece{
@@ -90,6 +92,12 @@ struct board_node{
 };
 typedef struct board_node board_node;
 
+struct board_and_move_arrays{
+	board_array board_array;
+	move_array move_array;
+};
+typedef struct board_and_move_arrays board_and_move_arrays;
+
 struct move_node{
 	move stored_move;
 	struct move_node* next;
@@ -107,7 +115,10 @@ piece piece_invalid();
 move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote);
 move move_invalid();
 move move_from_string(char *str);
+void move_to_string(move move_in, char* out);
 int eval_board_node(board_node node, int max_depth);
 board_array board_legal_states(struct board board_in);
 move_array board_piece_possible_moves(struct board board_in, int from_file, int from_rank);
 bool board_empty(board board_in, int to_file, int to_rank);
+board_and_move_arrays board_legal_states_and_moves(struct board board_in);
+board_node board_node_new(board board_in, int depth);

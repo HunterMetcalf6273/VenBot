@@ -4,11 +4,13 @@
 #include "analysis.h"
 
 void main(int argc, char **argv){
+	int best_index, cur_index, temp_val, best_val;
 	char input[1024];
 	char* pointer;
+	char out_string[6];
 	board cur_board;
-	board_array test;
-	int max_depth = 8;
+	board_and_move_arrays moves_and_states;
+	int max_depth = 4;
 	//Unimplemented commands: debug, setoption, register, ucinewgame, stop, ponderhit, info
 	while(1){
 		fgets(input, 1024, stdin);
@@ -34,6 +36,24 @@ void main(int argc, char **argv){
 		}
 		//Find best move (ignore other parameters for now)
 		else if(strncmp(input, "go", 2) == 0){
+			moves_and_states = board_legal_states_and_moves(cur_board);
+			cur_index = 0;
+			best_index = 0;
+			if(cur_board.to_move) best_val = BLACK_CHECKMATE;
+			else best_val = WHITE_CHECKMATE;
+			while(moves_and_states.board_array.array[cur_index].draw_counter != 127){
+				fprintf(stdout, "info currmovenumber %d\n", cur_index+1);
+				fflush(stdout);
+				temp_val = eval_board_node(board_node_new(moves_and_states.board_array.array[cur_index], 1), max_depth);
+				if((cur_board.to_move && temp_val > best_val) || (!cur_board.to_move && temp_val < best_val)){
+					best_val = temp_val;
+					best_index = cur_index;
+				}
+				
+				cur_index++;
+			}
+			move_to_string(moves_and_states.move_array.array[best_index], out_string);
+			fprintf(stdout, "bestmove %s, evaluated at %d\n", out_string, best_val);
 			fflush(stdout);
 		}
 		//Exit program
@@ -46,10 +66,10 @@ void main(int argc, char **argv){
 			else fprintf(stdout, "%d is not in check\n", cur_board.to_move);
 			fflush(stdout);
 		}
-		else if(strncmp(input, "boards", 6) == 0){
-				test = board_legal_states(cur_board);
+		/*else if(strncmp(input, "boards", 6) == 0){
+				moves = board_legal_states(cur_board);
 				int out = 0;
-				while(test.array[out].draw_counter != 127){
+				while(moves.array[out].draw_counter != 127){
 					out++;
 				}
 				fprintf(stdout, "done, calculated %d boardstates\n", out);
@@ -57,6 +77,6 @@ void main(int argc, char **argv){
 					fprintf(stdout, "end state, result: %d\n", eval_result(cur_board));
 				}
 				fflush(stdout);
-		}
+		}*/
 	}
 }

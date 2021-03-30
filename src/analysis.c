@@ -199,12 +199,18 @@ piece_array eval_array_captures(board board_in, int to_file, int to_rank, bool m
 //					Board Analyisis Functions						
 //******************************************************************
 //Given a position with no legal moves, determines the winner
-//0 = black, 1 = white, -1 = draw
+//BLACK_CHECKMATE = black, WHITE_CHECKMATE = white, 0 = draw
 //Undefined behavior if given a position with legal moves
-//TODO: Implement
 int eval_result(struct board boardstate){
-	if(eval_check(boardstate)) return !boardstate.to_move;
-	return -1;
+	if(eval_check(boardstate)){
+		if(boardstate.to_move){
+			return BLACK_CHECKMATE;
+		}
+		else{
+			return WHITE_CHECKMATE;
+		}
+	}
+	return 0;
 }
 
 //Returns material evaluation in centipawns, where:

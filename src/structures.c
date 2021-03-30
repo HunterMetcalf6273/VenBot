@@ -169,9 +169,9 @@ struct board board_move(struct board board_in, struct move move_in){
 	}
 	//Castling handling
 	//The only legal move where the king moves more than one tile is the castle, so if the difference in file is > 1, then it must be a castle
-	if(board_in.grid[from_file][from_rank].type == KING && (move_in.from_file - move_in.to_file > 1 && move_in.from_file - move_in.to_file < -1)){
+	if(board_in.grid[from_file][from_rank].type == KING && (move_in.from_file - move_in.to_file != 1 && move_in.from_file - move_in.to_file != 0 && move_in.from_file - move_in.to_file != -1)){
 		//Kingside castling
-		if(from_file - to_file > 0){
+		if(to_file - from_file > 0){
 			//Moves rook; king is moved at end of function
 			board_in = _piece_move(board_in, 7, from_rank, 5, from_rank);
 		}
@@ -216,7 +216,7 @@ board_array board_legal_states(struct board board_in){
 				temp_index = 0;
 				while(temp.array[temp_index].promote != 7){
 					//TESTING
-					fprintf(stdout, "%d%d %d%d\n", temp.array[temp_index].from_file, temp.array[temp_index].from_rank, temp.array[temp_index].to_file, temp.array[temp_index].to_rank);
+					//fprintf(stdout, "%d%d %d%d\n", temp.array[temp_index].from_file, temp.array[temp_index].from_rank, temp.array[temp_index].to_file, temp.array[temp_index].to_rank);
 					pre_check.array[pre_check_index++] = board_move(board_in, temp.array[temp_index++]);
 				}
 			}
@@ -229,12 +229,54 @@ board_array board_legal_states(struct board board_in){
 	while(pre_check.array[pre_check_index].draw_counter != 127){
 		pre_check.array[pre_check_index].to_move = !pre_check.array[pre_check_index].to_move;
 		if(!eval_check(pre_check.array[pre_check_index])){
+			pre_check.array[pre_check_index].to_move = !pre_check.array[pre_check_index].to_move;
 			out.array[temp_index++] = pre_check.array[pre_check_index];
 		}
 		pre_check_index++;
 	}
 	out.array[temp_index] = board_invalid();
 	return out;
+}
+//Returns a board_and_moves_arrays of all possible legal positions reachable by one move from given position, and the moves required to reach those positions (in the same order)
+//Final entry in array marked by invalid board (draw_counter == 127) for boards, and invalid move (promote == 7) for moves
+board_and_move_arrays board_legal_states_and_moves(struct board board_in){
+	int temp_index, pre_check_index;
+	board_array pre_check, out;
+	move_array temp, moves_out, pre_check_moves;
+	board_and_move_arrays real_out;
+	pre_check_index = 0;
+	for(int file = 0; file <= 7; file++){
+		for(int rank = 0; rank <= 7; rank++){
+			if(board_in.grid[file][rank].owner == board_in.to_move && board_in.grid[file][rank].type != 0){
+				temp = board_piece_possible_moves(board_in, file, rank);
+				temp_index = 0;
+				while(temp.array[temp_index].promote != 7){
+					//TESTING
+					//fprintf(stdout, "%d%d %d%d\n", temp.array[temp_index].from_file, temp.array[temp_index].from_rank, temp.array[temp_index].to_file, temp.array[temp_index].to_rank);
+					pre_check_moves.array[pre_check_index] = temp.array[temp_index];
+					pre_check.array[pre_check_index++] = board_move(board_in, temp.array[temp_index++]);
+				}
+			}
+		}
+	}
+	pre_check.array[pre_check_index] = board_invalid();
+	pre_check_index = 0;
+	temp_index = 0;
+	//Removes all moves which put the moving player into check
+	while(pre_check.array[pre_check_index].draw_counter != 127){
+		pre_check.array[pre_check_index].to_move = !pre_check.array[pre_check_index].to_move;
+		if(!eval_check(pre_check.array[pre_check_index])){
+			pre_check.array[pre_check_index].to_move = !pre_check.array[pre_check_index].to_move;
+			moves_out.array[temp_index] = pre_check_moves.array[pre_check_index];
+			out.array[temp_index++] = pre_check.array[pre_check_index];
+		}
+		pre_check_index++;
+	}
+	moves_out.array[temp_index] = move_invalid();
+	out.array[temp_index] = board_invalid();
+	real_out.board_array = out;
+	real_out.move_array = moves_out;
+	return real_out;
 }
 
 //Returns a move_array of all possible "legal" (not considering check) moves from given position, by piece at given location
@@ -677,6 +719,29 @@ move move_from_string(char *str){
 	return out;
 }
 
+//Converts a move into a long algebraic chess move, without an x to mark captures, stored at the given address
+//TODO: Implement
+void move_to_string(move move_in, char* out){
+	out[0] = move_in.from_file + 97;
+	out[1] = move_in.from_rank + 49;
+	out[2] = ' ';
+	out[3] = move_in.to_file + 97;
+	out[4] = move_in.to_rank + 49;
+	out[5] = '\0';
+}
+
+//******************************************************************
+//							board_node Functions					
+//******************************************************************
+
+//Creates a board_node from given parameters
+board_node board_node_new(board board_in, int depth){
+	board_node out;
+	out.cur_board = board_in;
+	out.depth = depth;
+	return out;
+}
+
 //Creates a board_node from given parameters (makes move move_in on board board_in; does NOT copy board_in to board)
 //Only intended to be called by eval_board_node
 board_node _board_node_new(board board_in, move move_in, int depth){
@@ -685,35 +750,42 @@ board_node _board_node_new(board board_in, move move_in, int depth){
 	out.depth = depth;
 	return out;
 }
-//Returns the calculated value of the given node, considering all its possible children to given max depth
-/*/TODO:Test & Document
+
 int eval_board_node(board_node node_in, int max_depth){
-	int out, child_value;
-	move_node* list_cur;
-	//If max depth has not been reached, generate linked list of possible moves
-	if(node_in.depth <= max_depth) list_cur = board_get_legal_move_list(node_in.cur_board);
-	//If no possible moves or max depth reached, return calculated value of boardstate
-	if(list_cur == NULL) return eval_overall(node_in.cur_board);
-	//White to choose next move
-	if(node_in.cur_board.to_move == BLACK){
-		out = -2147483648;
-		while(list_cur != NULL){
-			child_value = eval_board_node(_board_node_new(node_in.cur_board, list_cur->stored_move, node_in.depth + 1), max_depth);
-			if(child_value > out) out = child_value;
-			list_cur = list_cur->next;
+	int out, child_value, states_index;
+	board_array states;
+	states_index = 0;
+	states = board_legal_states(node_in.cur_board);
+	//If no legal moves, return result of game
+	if(states.array[0].draw_counter == 127) return eval_result(node_in.cur_board);
+	//If we aren't at max_depth, calculate next layer
+	if(node_in.depth < max_depth){
+		//White to choose next move
+		if(node_in.cur_board.to_move != BLACK){
+			out = -2147483648;
+			while(states.array[states_index].draw_counter != 127){
+				child_value = eval_board_node(board_node_new(states.array[states_index], node_in.depth + 1), max_depth);
+				if(child_value > out) out = child_value;
+				states_index++;
+			}
+		}
+		//Black to choose next move
+		else{
+			out = 2147483647;
+			while(states.array[states_index].draw_counter != 127){
+				child_value = eval_board_node(board_node_new(states.array[states_index], node_in.depth + 1), max_depth);
+				if(child_value < out) out = child_value;
+				states_index++;
+			}
 		}
 	}
-	//Black to choose next move
+	//If we are at max depth, calculate value of current boardstate
 	else{
-		out = 2147483647;
-		while(list_cur != NULL){
-			child_value = eval_board_node(_board_node_new(node_in.cur_board, list_cur->stored_move, node_in.depth + 1), max_depth);
-			if(child_value < out) out = child_value;
-			list_cur = list_cur->next;
-		}
+		//TODO: Make this use something better than material evaluation
+		out = eval_material(node_in.cur_board);
 	}
 	return out;
-}*/
+}
 
 
 
