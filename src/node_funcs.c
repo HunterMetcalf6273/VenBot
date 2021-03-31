@@ -15,9 +15,38 @@ node node_new(board board_in, int depth){
 //Only intended to be called by eval_board_node
 node node_move(board board_in, move move_in, int depth){
 	node out;
-	out.sboard = board_move(board_in, move_in);
+	out.sboard = _board_move(board_in, &move_in);
 	out.last_move = move_in;
 	out.depth = depth;
+	return out;
+}
+
+//Given two node pointers, swaps their memory values
+void node_swap(node *pos1, node *pos2){
+	node temp = *pos1;
+	*pos1 = *pos2;
+	*pos2 = temp;
+}
+
+//Given a pointer to a node array, sorts the array
+void node_array_sort(node_array *array, int length){
+	int index_left, index_right;
+	for (index_left = 0; index_left < length-1; index_left++){
+		for(index_right = 0; index_right < length - index_left - 1; index_right++){
+			if(array->array[index_right].last_move.priority < array->array[index_right+1].last_move.priority) node_swap(&array->array[index_right], &array->array[index_right+1]);
+		}
+	}
+}
+
+//Counts the number of valid values in *array (not counting the terminator node)
+int node_array_length(node_array *array){
+	int out, index;
+	index = 0;
+	out = 0;
+	while(array->array[index].sboard.draw_counter != 127){
+		index++;
+		out++;
+	}
 	return out;
 }
 
@@ -29,39 +58,40 @@ move node_best_move(node node_in, int max_depth, int alpha, int beta){
 	children_index = 0;
 	out_index = 0;
 	children = board_legal_states(node_in.sboard, node_in.depth+1);
+	node_array_sort(&children, node_array_length(&children));	
 	//If no legal moves, return invalid move
 	if(children.array[0].sboard.draw_counter == 127) return move_invalid();
 	//White to choose next move
 	if(node_in.sboard.to_move == WHITE){
-		best = -2147483648;
+		best = BLACK_CHECKMATE;
 		while(children.array[children_index].sboard.draw_counter != 127){
 			child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 			move_to_string(children.array[children_index].last_move, out_string);
-			//fprintf(stdout, "info currmove %s currmovenumber %d", out_string, children_index+1);
-			//fflush(stdout);
+			fprintf(stdout, "info currmove %s currmovenumber %d\n", out_string, children_index+1);
+			fflush(stdout);
 			if(child_value > best){
 				best = child_value;
 				out_index = children_index;
+				score = best;
 			}
 			if(best > alpha) alpha = best;
-			//if(beta <= alpha) break;
 			children_index++;
 		}
 	}
 	//Black to choose next move
 	else{
-		best = 2147483647;
+		best = WHITE_CHECKMATE;
 		while(children.array[children_index].sboard.draw_counter != 127){
 			child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 			move_to_string(children.array[children_index].last_move, out_string);
-			//fprintf(stdout, "info currmove %s currmovenumber %d", out_string, children_index+1);
+			//fprintf(stdout, "info currmove %s currmovenumber %d\n", out_string, children_index+1);
 			//fflush(stdout);
 			if(child_value < best){
 				best = child_value;
 				out_index = children_index;
+				score = best;
 			}
-			if(best <= beta) beta = best;
-			//if(beta <= alpha) break;
+			if(best < beta) beta = best;
 			children_index++;
 		}
 	}
@@ -73,13 +103,14 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 	node_array children;
 	children_index = 0;
 	children = board_legal_states(node_in.sboard, node_in.depth+1);
+	node_array_sort(&children, node_array_length(&children));
 	//If no legal moves, return result of game
 	if(children.array[0].sboard.draw_counter == 127) return eval_result(node_in.sboard);
 	//If we aren't at max_depth, calculate next layer
 	if(node_in.depth < max_depth){
 		//White to choose next move
 		if(node_in.sboard.to_move != BLACK){
-			out = -2147483648;
+			out = BLACK_CHECKMATE;
 			while(children.array[children_index].sboard.draw_counter != 127){
 				child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 				if(child_value > out) out = child_value;
@@ -90,11 +121,11 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 		}
 		//Black to choose next move
 		else{
-			out = 2147483647;
+			out = WHITE_CHECKMATE;
 			while(children.array[children_index].sboard.draw_counter != 127){
 				child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 				if(child_value < out) out = child_value;
-				if(out <= beta) beta = out;
+				if(out < beta) beta = out;
 				if(beta <= alpha) break;
 				children_index++;
 			}
@@ -102,7 +133,7 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 	}
 	//If we are at max depth, calculate value of current boardstate
 	else{
-		out = eval_position(node_in.sboard);
+			out = eval_position(node_in.sboard);
 	}
 	return out;
 }

@@ -389,18 +389,36 @@ int eval_material(struct board boardstate){
 				case PAWN:
 					if(boardstate.grid[file][rank].owner == 1){
 						out = out + 100;
+						//Pawns should go towards the enemy
+						out += rank*10;
 					}
 					else{
 						out = out - 100;
+						out -= 70 - rank*10;
 					}
 					break;
 				case BISHOP:
+					if(boardstate.grid[file][rank].owner == 1){
+						out = out + 330;
+						if(rank == 0) out -= 50;
+					}
+					else{
+						out = out - 330;
+						if(rank == 7) out += 50;
+					}
+					break;
 				case KNIGHT:
 					if(boardstate.grid[file][rank].owner == 1){
 						out = out + 300;
+						//Knights belong in the middle of the board
+						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out += 50;
+						//Undeveloped pieces are worse
+						else if(rank == 0) out -= 50;
 					}
 					else{
 						out = out - 300;
+						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out -= 50;
+						else if(rank == 7) out += 50;
 					}
 					break;
 				case ROOK:
@@ -420,7 +438,6 @@ int eval_material(struct board boardstate){
 					}
 					break;
 			}
-			//if(boardstate.grid[file][rank].type != VACANT)printf("file: %d, rank: %d, type: %d, owner: %d, eval: %d\n", file, rank, boardstate.grid[file][rank].type, boardstate.grid[file][rank].owner, out);
 		}
 	}
 	return out;
@@ -435,5 +452,8 @@ int eval_position(struct board boardstate){
 	//Check is bad for the moving player
 	if(boardstate.to_move && eval_check(boardstate)) out -= 50;
 	else if(!boardstate.to_move && eval_check(boardstate)) out +=50;
+	//Castling is good
+	if(boardstate.grid[1][0].type == KING || boardstate.grid[6][0].type == KING) out+=100;
+	if(boardstate.grid[1][7].type == KING || boardstate.grid[6][7].type == KING) out-=100;
 	return out;
 }

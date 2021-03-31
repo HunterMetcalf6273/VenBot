@@ -7,15 +7,18 @@
 #include "node_funcs.h"
 #include "analysis.h"
 
+int score;
+
 int main(int argc, char **argv){
 	char input[1024];
 	char* pointer;
 	char out_string[6];
 	board cur_board;
-	int max_depth = 4;
+	int max_depth = 5;
 	//Unimplemented commands: debug, setoption, register, ucinewgame, stop, ponderhit, info
 	while(1){
 		fgets(input, 1024, stdin);
+		fflush(stdin);
 		input[strcspn(input, "\n")] = 0;
 		if(strncmp(input, "uci", 3) == 0){
 			fprintf(stdout, "id name VenBot\nid author Hunter Metcalf\nuciok\n");
@@ -28,7 +31,7 @@ int main(int argc, char **argv){
 		else if(strncmp(input, "position", 8) == 0){
 			pointer = strchr(input, ' ') + 1;
 			if(strncmp(input, "position startpos", 17) == 0) cur_board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-			else cur_board = board_from_fen(pointer);
+			else cur_board = board_from_fen(pointer+4);
 			pointer = strstr(pointer, "moves")+6;
 			while(pointer -6 != NULL && pointer - 1 != NULL){
 				cur_board = board_move(cur_board, move_from_string(pointer));
@@ -39,6 +42,7 @@ int main(int argc, char **argv){
 		//Find best move (ignore other parameters for now)
 		else if(strncmp(input, "go", 2) == 0){
 			move_to_string(node_best_move(node_new(cur_board, 0), max_depth, BLACK_CHECKMATE, WHITE_CHECKMATE), out_string);
+			fprintf(stdout, "info score %d\n", score);
 			fprintf(stdout, "bestmove %s\n", out_string);
 			fflush(stdout);
 		}

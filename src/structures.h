@@ -12,14 +12,16 @@
 #define VACANT 0
 #define PAWN 1
 #define KING 2
-#define QUEEN 3
-#define ROOK 4
-#define BISHOP 5
-#define KNIGHT 6
+#define KNIGHT 3
+#define BISHOP 4
+#define ROOK 5
+#define QUEEN 6
 #define WHITE 1
 #define BLACK 0
 #define WHITE_CHECKMATE 2147483647
 #define BLACK_CHECKMATE -2147483648
+
+extern int score;
 
 //Stores properties of a single piece
 struct piece{
@@ -69,6 +71,8 @@ struct move{
 	//If move is a promotion, stores what to promote to
 	//TODO: Consider finding a way to avoid using these 3 bits for every move
 	unsigned int promote:3;
+	//Move priority, for use by move ordering
+	unsigned int priority:4;
 };
 typedef struct move move;
 

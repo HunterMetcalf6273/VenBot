@@ -7,5 +7,6 @@ bool board_empty(board board_in, int to_file, int to_rank);
 //board_node board_node_new(board board_in, int depth);
 board board_from_fen(char in[]);
 board board_move(struct board board_in, struct move move_in);
+board _board_move(struct board board_in, struct move* move_in);
 bool board_capturable(board board_in, int to_file, int to_rank);
 bool board_moveable(board board_in, int to_file, int to_rank);

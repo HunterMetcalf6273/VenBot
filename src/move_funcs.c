@@ -8,6 +8,7 @@ move move_new(int from_file, int from_rank, int to_file, int to_rank, int promot
 	out.to_file = to_file;
 	out.to_rank = to_rank;
 	out.promote = promote;
+	out.priority = 0;
 	return out;
 }
 //Returns a move with the promote field set to 7, to indicate an undefined move

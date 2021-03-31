@@ -206,6 +206,112 @@ struct board board_move(struct board board_in, struct move move_in){
 	return board_in;
 }
 
+//Given a board and a move, makes a move
+//Assumes all given moves are "legal" (ignoring check); undefined behavior for illegal moves
+//Also sets move_in's priority flag
+board _board_move(struct board board_in, struct move *move_in){
+	int from_file, from_rank, to_file, to_rank, priority, from_type, to_type;
+	bool pawn_movement;
+	from_file = move_in->from_file;
+	from_rank = move_in->from_rank;
+	to_file = move_in->to_file;
+	to_rank = move_in->to_rank;
+	from_type = board_in.grid[from_file][from_rank].type;
+	to_type = board_in.grid[to_file][to_rank].type;
+	pawn_movement = from_type == PAWN;
+	priority = 0;
+	//En passant flag handling
+	if(pawn_movement && (from_rank - to_rank == 2 || from_rank - to_rank == -2)){
+		board_in.en_passant_valid = true; 
+		board_in.en_passant_file = to_file;
+		board_in.en_passant_rank = to_rank;
+	}
+	else board_in.en_passant_valid = false;
+	//Draw counter handling
+	if(pawn_movement || to_type != VACANT) board_in.draw_counter = 0;
+	else board_in.draw_counter++;
+	//Castling rights handling
+	//White's queenside rook
+	if(board_in.white_queenside && from_file == 0 && from_rank == 0) board_in.white_queenside = false;
+	//White's kingside rook
+	else if(board_in.white_kingside && from_file == 7 && from_rank == 0) board_in.white_kingside = false;
+	//White's king
+	else if((board_in.white_queenside || board_in.white_kingside) && from_file == 4 && from_rank == 0){
+		board_in.white_queenside = false;
+		board_in.white_kingside = false;
+	}
+	//Black's queenside rook
+	else if(board_in.black_queenside && from_file == 0 && from_rank == 0) board_in.black_queenside = false;
+	//Black's kingside rook
+	else if(board_in.black_kingside && from_file == 7 && from_rank == 0) board_in.black_kingside = false;
+	//Black's king
+	else if((board_in.black_queenside || board_in.black_kingside) && from_file == 4 && from_rank == 7){
+		board_in.black_queenside = false;
+		board_in.black_kingside = false;
+	}
+	//Castling handling
+	//The only legal move where the king moves more than one tile is the castle, so if the difference in file is > 1, then it must be a castle
+	if(from_type == KING && (from_file - to_file != 1 && from_file - to_file != 0 && from_file - to_file != -1)){
+		//Kingside castling
+		if(to_file - from_file > 0){
+			//Moves rook; king is moved at end of function
+			board_in = _piece_move(board_in, 7, from_rank, 5, from_rank);
+		}
+		//Queenside castling
+		else{
+			//Same as above
+			board_in = _piece_move(board_in, 0, from_rank, 2, from_rank);
+		}
+	}
+	//Promotion handling
+	else if(move_in->promote != 0){ 
+		board_in.grid[from_file][from_rank].type = move_in->promote;
+	}
+	//En passant handling
+	//The only legal diagonal pawn move that moves into an empty tile is an en passant
+	else if(pawn_movement && from_file != to_file && to_type == VACANT){
+		//White's move
+		if(board_in.grid[from_file][from_rank].owner == WHITE){
+			board_in.grid[to_file][to_rank-1].type = VACANT;
+		}
+		//Black's move
+		else{
+			board_in.grid[to_file][to_rank+1].type = VACANT;
+		}
+	}
+/*15: promote queen
+	14: capture queen with pawn/king
+	13: capture rook with pawn/king
+	12: capture bishop/knight with pawn/king
+	11: capture piece with weaker piece (from_type < to_type) (considers bishops > knights)
+	10: capture piece with equal piece (from_type == to_type)
+	9: castle
+	8: move queen
+	7: move rook
+	6: move bishop
+	5: move knight
+	4: capture piece with stronger piece
+	3: move pawn
+	2: promote to non queen*/
+	if(move_in->promote == QUEEN) 																						priority = 15;
+	else if((from_type == KING || from_type == PAWN) && to_type == QUEEN) 												priority = 14;
+	else if((from_type == KING || from_type == PAWN) && to_type == ROOK)												priority = 13;
+	else if((from_type == KING || from_type == PAWN) && (to_type == BISHOP || to_type == KNIGHT))						priority = 12;
+	else if(from_type < to_type)																						priority = 11;
+	else if(from_type == to_type)																						priority = 10;
+	else if(from_type == KING && (from_file - to_file != 1 && from_file - to_file != 0 && from_file - to_file != -1))	priority = 9;
+	else if(from_type == QUEEN)																							priority = 8;
+	else if(from_type == ROOK)																							priority = 7;
+	else if(from_type == BISHOP)																						priority = 6;
+	else if(from_type == KNIGHT)																						priority = 5;
+	else if(from_type > to_type)																						priority = 4;
+	else if(from_type == PAWN)																							priority = 3;
+	move_in->priority = priority;
+	board_in = _piece_move(board_in, from_file, from_rank, to_file, to_rank);
+	board_in.to_move = !board_in.to_move;
+	return board_in;
+}
+
 //Returns a board_array of all possible legal positions reachable by one move from given position
 //Final entry in array marked by invalid board (draw_counter = 127)
 node_array board_legal_states(struct board board_in, int depth){
@@ -390,13 +496,16 @@ move* board_piece_possible_moves(struct board board_in, int from_file, int from_
 			//Castling
 			//Kingside:
 			if((board_in.to_move && board_in.white_kingside) || (!board_in.to_move && board_in.black_kingside)){
-				if(((!_eval_array_captures(board_in, from_file, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file+1, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file+2, from_rank, board_in.to_move))) &&
-					board_in.grid[from_file+1][from_rank].type == VACANT && board_in.grid[from_file+2][from_rank].type == VACANT) move_new(from_file, from_rank, from_file+2, from_rank, 0);
+				if((!_eval_array_captures(board_in, from_file, from_rank, !board_in.to_move)) && (!_eval_array_captures(board_in, from_file+1, from_rank, !board_in.to_move)) &&
+					(!_eval_array_captures(board_in, from_file+2, from_rank, !board_in.to_move)) &&
+					board_in.grid[from_file+1][from_rank].type == VACANT && board_in.grid[from_file+2][from_rank].type == VACANT)
+					out[out_index++] = move_new(from_file, from_rank, from_file+2, from_rank, 0);
 			}
 			//Queenside:
 			if((board_in.to_move && board_in.white_queenside) || (!board_in.to_move && board_in.black_queenside)){
-				if(((!_eval_array_captures(board_in, from_file, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file-1, from_rank, board_in.to_move)) && (!_eval_array_captures(board_in, from_file-2, from_rank, board_in.to_move))) &&
-					board_in.grid[from_file-1][from_rank].type == VACANT && board_in.grid[from_file-2][from_rank].type == VACANT && board_in.grid[from_file-3][from_rank].type == VACANT) move_new(from_file, from_rank, from_file+2, from_rank, 0);
+				if(((!_eval_array_captures(board_in, from_file, from_rank, !board_in.to_move)) && (!_eval_array_captures(board_in, from_file-1, from_rank, !board_in.to_move)) && (!_eval_array_captures(board_in, from_file-2, from_rank, !board_in.to_move))) &&
+					board_in.grid[from_file-1][from_rank].type == VACANT && board_in.grid[from_file-2][from_rank].type == VACANT && board_in.grid[from_file-3][from_rank].type == VACANT) 
+					out[out_index++] = move_new(from_file, from_rank, from_file+2, from_rank, 0);
 			}
 			break;
 		case QUEEN:
