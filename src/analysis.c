@@ -380,7 +380,15 @@ int eval_result(struct board boardstate){
 //pawn = 100, bishop or knight = 300, rook = 500, queen = 900
 //White pieces add, black pieces subtract
 int eval_material(struct board boardstate){
-	int out = 0;
+	int out, white_pawns, black_pawns; //white/black tiles, not owner
+	bool white_white_bishop, white_black_bishop, black_white_bishop, black_black_bishop; //owner_tile
+	out = 0;
+	white_pawns = 0;
+	black_pawns = 0;
+	white_white_bishop = false;
+	white_black_bishop = false;
+	black_white_bishop = false;
+	black_black_bishop = false;
 	//Iterates over entire board, adding or subtracting
 	//from out, depending on piece type and owner
 	for(int file = 0; file <= 7; file++){
@@ -396,14 +404,20 @@ int eval_material(struct board boardstate){
 						out = out - 100;
 						out -= 70 - rank*10;
 					}
+					if(file%2 == 0 && rank%2 == 1) white_pawns++;
+					else black_pawns++;
 					break;
 				case BISHOP:
 					if(boardstate.grid[file][rank].owner == 1){
-						out = out + 330;
+						out = out + 350;
+						if(file%2 == 0 && rank%2 == 1) white_white_bishop = true;
+						else white_black_bishop = true;
 						if(rank == 0) out -= 50;
 					}
 					else{
-						out = out - 330;
+						out = out - 350;
+						if(file%2 == 0 && rank%2 == 1) black_white_bishop = true;
+						else black_black_bishop = true;
 						if(rank == 7) out += 50;
 					}
 					break;
@@ -411,22 +425,27 @@ int eval_material(struct board boardstate){
 					if(boardstate.grid[file][rank].owner == 1){
 						out = out + 300;
 						//Knights belong in the middle of the board
-						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out += 50;
+						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out += 25;
+						if(file >= 3 && file <= 4 && rank >=3 && rank <= 4) out += 25;
 						//Undeveloped pieces are worse
 						else if(rank == 0) out -= 50;
 					}
 					else{
 						out = out - 300;
-						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out -= 50;
+						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out -= 25;
+						if(file >= 3 && file <= 4 && rank >=3 && rank <= 4) out -= 25;
 						else if(rank == 7) out += 50;
 					}
 					break;
 				case ROOK:
 					if(boardstate.grid[file][rank].owner == 1){
 						out = out + 500;
+						//Controlling the center files
+						if(file == 3 || file == 4) out += 50;
 					}
 					else{
 						out = out - 500;
+						if(file == 3 || file == 4) out -= 50;
 					}
 					break;
 				case QUEEN:
@@ -440,6 +459,11 @@ int eval_material(struct board boardstate){
 			}
 		}
 	}
+	//Bishops are better with less pawns on their tiles
+	if(white_white_bishop) out -= white_pawns * 10;
+	if(white_black_bishop) out -= black_pawns * 10;
+	if(black_white_bishop) out -= white_pawns * 10;
+	if(black_black_bishop) out -= black_pawns * 10;
 	return out;
 }
 

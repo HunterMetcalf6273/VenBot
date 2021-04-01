@@ -67,8 +67,8 @@ move node_best_move(node node_in, int max_depth, int alpha, int beta){
 		while(children.array[children_index].sboard.draw_counter != 127){
 			child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 			move_to_string(children.array[children_index].last_move, out_string);
-			fprintf(stdout, "info currmove %s currmovenumber %d\n", out_string, children_index+1);
-			fflush(stdout);
+			//fprintf(stdout, "info currmove %s currmovenumber %d\n", out_string, children_index+1);
+			//fflush(stdout);
 			if(child_value > best){
 				best = child_value;
 				out_index = children_index;
@@ -113,6 +113,10 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 			out = BLACK_CHECKMATE;
 			while(children.array[children_index].sboard.draw_counter != 127){
 				child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
+				if(child_value == WHITE_CHECKMATE){
+					//Prefer shorter checkmates
+					child_value -= node_in.depth;
+				}
 				if(child_value > out) out = child_value;
 				if(out > alpha) alpha = out;
 				if(beta <= alpha) break;
@@ -124,6 +128,10 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 			out = WHITE_CHECKMATE;
 			while(children.array[children_index].sboard.draw_counter != 127){
 				child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
+				if(child_value == BLACK_CHECKMATE){
+					//Prefer shorter checkmates
+					child_value += node_in.depth;
+				}
 				if(child_value < out) out = child_value;
 				if(out < beta) beta = out;
 				if(beta <= alpha) break;
