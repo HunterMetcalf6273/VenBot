@@ -13,6 +13,7 @@ int main(int argc, char **argv){
 	char input[1024];
 	char* pointer;
 	char out_string[6];
+	move temp_move;
 	board cur_board;
 	int max_depth = 5;
 	//Unimplemented commands: debug, setoption, register, ucinewgame, stop, ponderhit, info
@@ -34,7 +35,8 @@ int main(int argc, char **argv){
 			else cur_board = board_from_fen(pointer+4);
 			pointer = strstr(pointer, "moves")+6;
 			while(pointer -6 != NULL && pointer - 1 != NULL){
-				cur_board = board_move(cur_board, move_from_string(pointer));
+				temp_move = move_from_string(pointer);
+				cur_board = board_move(cur_board, &temp_move);
 				pointer = strchr(pointer, ' ') + 1;
 			}
 			

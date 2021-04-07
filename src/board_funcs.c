@@ -10,12 +10,13 @@
 //******************************************************************
 
 //Given a position in fen format, returns defined board
-//TODO: Document & test
 board board_from_fen(char in[]){
-	int string_index, grid_index, store;
+	int store;
 	board out;
-	string_index = 0;
-	grid_index = 0;
+	int string_index = 0;
+	int grid_index = 0;
+	
+	//First, parse piece definition part of string, setting each grid square to its assigned piece
 	while(in[string_index] != ' '){
 		switch(in[string_index]){
 			//Lowercase letters, representing black pieces
@@ -83,9 +84,11 @@ board board_from_fen(char in[]){
 		string_index++;
 	}
 	string_index++;
+	//Set current turn
 	if(in[string_index] == 'w') out.to_move = WHITE;
 	else out.to_move = BLACK;
 	string_index += 2;
+	//Parse castling rights
 	while(in[string_index] != ' '){
 		switch(in[string_index]){
 			case 'K':
@@ -104,6 +107,7 @@ board board_from_fen(char in[]){
 		string_index++;
 	}
 	string_index++;
+	//Set en passant tile, if it exists
 	if(in[string_index] != '-'){
 		out.en_passant_valid = 1;
 		out.en_passant_file = in[string_index++] - 97;
@@ -113,6 +117,7 @@ board board_from_fen(char in[]){
 		out.en_passant_valid = 0;
 	}
 	string_index += 2;
+	//Set draw counter
 	out.draw_counter = in[string_index] - 48;
 	return out;
 }
@@ -132,16 +137,15 @@ struct board _piece_move(struct board board_in, int from_file, int from_rank, in
 	return board_in;
 }
 
-//Given a board and a move, makes a move
+//Given a board and a move, returns the board after the given move is made on the given board
 //Assumes all given moves are "legal" (ignoring check); undefined behavior for illegal moves
-struct board board_move(struct board board_in, struct move move_in){
-	int from_file, from_rank, to_file, to_rank;
-	bool pawn_movement;
-	from_file = move_in.from_file;
-	from_rank = move_in.from_rank;
-	to_file = move_in.to_file;
-	to_rank = move_in.to_rank;
-	pawn_movement = board_in.grid[from_file][from_rank].type == PAWN;
+/*struct board board_move(struct board board_in, struct move move_in){
+	int from_file = move_in.from_file;
+	int from_rank = move_in.from_rank;
+	int to_file = move_in.to_file;
+	int to_rank = move_in.to_rank;
+	bool pawn_movement = board_in.grid[from_file][from_rank].type == PAWN;
+	
 	//En passant flag handling
 	if(pawn_movement && (from_rank - to_rank == 2 || from_rank - to_rank == -2)){
 		board_in.en_passant_valid = true; 
@@ -201,25 +205,26 @@ struct board board_move(struct board board_in, struct move move_in){
 			board_in.grid[to_file][to_rank+1].type = VACANT;
 		}
 	}
+	//Actually moves the piece
 	board_in = _piece_move(board_in, from_file, from_rank, to_file, to_rank);
+	//Flip turn bool
 	board_in.to_move = !board_in.to_move;
 	return board_in;
 }
-
+*/
 //Given a board and a move, makes a move
 //Assumes all given moves are "legal" (ignoring check); undefined behavior for illegal moves
 //Also sets move_in's priority flag
-board _board_move(struct board board_in, struct move *move_in){
-	int from_file, from_rank, to_file, to_rank, priority, from_type, to_type;
-	bool pawn_movement;
-	from_file = move_in->from_file;
-	from_rank = move_in->from_rank;
-	to_file = move_in->to_file;
-	to_rank = move_in->to_rank;
-	from_type = board_in.grid[from_file][from_rank].type;
-	to_type = board_in.grid[to_file][to_rank].type;
-	pawn_movement = from_type == PAWN;
-	priority = 0;
+board board_move(struct board board_in, struct move *move_in){
+	int from_file = move_in->from_file;
+	int from_rank = move_in->from_rank;
+	int to_file = move_in->to_file;
+	int to_rank = move_in->to_rank;
+	int from_type = board_in.grid[from_file][from_rank].type;
+	int to_type = board_in.grid[to_file][to_rank].type;
+	int pawn_movement = from_type == PAWN;
+	int priority = 0;
+	
 	//En passant flag handling
 	if(pawn_movement && (from_rank - to_rank == 2 || from_rank - to_rank == -2)){
 		board_in.en_passant_valid = true; 

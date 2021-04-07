@@ -15,7 +15,7 @@ node node_new(board board_in, int depth){
 //Only intended to be called by eval_board_node
 node node_move(board board_in, move move_in, int depth){
 	node out;
-	out.sboard = _board_move(board_in, &move_in);
+	out.sboard = board_move(board_in, &move_in);
 	out.last_move = move_in;
 	out.depth = depth;
 	return out;
@@ -67,8 +67,6 @@ move node_best_move(node node_in, int max_depth, int alpha, int beta){
 		while(children.array[children_index].sboard.draw_counter != 127){
 			child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 			move_to_string(children.array[children_index].last_move, out_string);
-			//fprintf(stdout, "info currmove %s currmovenumber %d\n", out_string, children_index+1);
-			//fflush(stdout);
 			if(child_value > best){
 				best = child_value;
 				out_index = children_index;
@@ -84,8 +82,6 @@ move node_best_move(node node_in, int max_depth, int alpha, int beta){
 		while(children.array[children_index].sboard.draw_counter != 127){
 			child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
 			move_to_string(children.array[children_index].last_move, out_string);
-			//fprintf(stdout, "info currmove %s currmovenumber %d\n", out_string, children_index+1);
-			//fflush(stdout);
 			if(child_value < best){
 				best = child_value;
 				out_index = children_index;
