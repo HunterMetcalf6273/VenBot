@@ -113,7 +113,7 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 			out = BLACK_CHECKMATE;
 			while(children.array[children_index].sboard.draw_counter != 127){
 				child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
-				if(child_value == WHITE_CHECKMATE){
+				if(child_value > WHITE_CHECKMATE-100){
 					//Prefer shorter checkmates
 					child_value -= node_in.depth;
 				}
@@ -128,7 +128,7 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 			out = WHITE_CHECKMATE;
 			while(children.array[children_index].sboard.draw_counter != 127){
 				child_value = node_eval(children.array[children_index], max_depth, alpha, beta);
-				if(child_value == BLACK_CHECKMATE){
+				if(child_value < BLACK_CHECKMATE+100){
 					//Prefer shorter checkmates
 					child_value += node_in.depth;
 				}

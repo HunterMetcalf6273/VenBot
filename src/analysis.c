@@ -462,8 +462,8 @@ int eval_material(struct board boardstate){
 	//Bishops are better with less pawns on their tiles
 	if(white_white_bishop) out -= white_pawns * 10;
 	if(white_black_bishop) out -= black_pawns * 10;
-	if(black_white_bishop) out -= white_pawns * 10;
-	if(black_black_bishop) out -= black_pawns * 10;
+	if(black_white_bishop) out += white_pawns * 10;
+	if(black_black_bishop) out += black_pawns * 10;
 	return out;
 }
 
