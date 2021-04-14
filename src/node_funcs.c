@@ -137,7 +137,7 @@ int node_eval(node node_in, int max_depth, int alpha, int beta){
 	}
 	//If we are at max depth, calculate value of current boardstate
 	else{
-			out = eval_position(node_in.sboard);
+		out = eval_board(node_in.sboard);
 	}
 	return out;
 }

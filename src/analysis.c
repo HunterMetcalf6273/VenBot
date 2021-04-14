@@ -27,9 +27,9 @@ bool eval_check(board board_in){
 	//Check if the opposing player could capture the king, were it their turn
 	return _eval_array_captures(board_in, king_location_file, king_location_rank, !board_in.to_move);
 }
+
 //Returns an array of all pieces the given player owns which could capture the given tile
 //Useful either to determine how threatened a tile is, or to determine how reinforced a tile is
-//TODO: Test
 piece* eval_array_captures(board board_in, int to_file, int to_rank, bool moving){
 	int temp_file, temp_rank, pieces_index;
 	static piece array_out[64];
@@ -197,7 +197,6 @@ piece* eval_array_captures(board board_in, int to_file, int to_rank, bool moving
 
 //Special version of eval_array_captures which only returns whether or not any capture exists, not from what kind of piece
 //Useful for check detection, primarily
-//TODO: Test
 bool _eval_array_captures(board board_in, int to_file, int to_rank, bool moving){
 	int temp_file, temp_rank;
 	//Check for vertical attacks
@@ -376,10 +375,8 @@ int eval_result(struct board boardstate){
 	return 0;
 }
 
-//Returns material evaluation in centipawns, where:
-//pawn = 100, bishop or knight = 300, rook = 500, queen = 900
-//White pieces add, black pieces subtract
-int eval_material(struct board boardstate){
+//Given a board, calculates the advantage, where positive values represent white advantage and negative values represent black advantage
+int eval_board(struct board boardstate){
 	int out, white_pawns, black_pawns; //white/black tiles, not owner
 	bool white_white_bishop, white_black_bishop, black_white_bishop, black_black_bishop; //owner_tile
 	out = 0;
@@ -464,15 +461,6 @@ int eval_material(struct board boardstate){
 	if(white_black_bishop) out -= black_pawns * 10;
 	if(black_white_bishop) out += white_pawns * 10;
 	if(black_black_bishop) out += black_pawns * 10;
-	return out;
-}
-
-//Evaluates advantage from positioning, + values = white advantage, - values = black advantage
-//TODO:Develop some sort of positioning valuation algorithm, and implement
-//Considerations:check, threats, reinforcement, development, castling, control (esp. center), strength of bishops (blocked by pawns, open/closed game), open rooks, safety of kings
-int eval_position(struct board boardstate){
-	//TODO: Inline eval_material, to avoid having to iterate over the grid twice
-	int out = eval_material(boardstate);
 	//Check is bad for the moving player
 	if(boardstate.to_move && eval_check(boardstate)) out -= 50;
 	else if(!boardstate.to_move && eval_check(boardstate)) out +=50;
