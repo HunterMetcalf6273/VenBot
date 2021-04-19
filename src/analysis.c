@@ -392,20 +392,22 @@ int eval_board(struct board boardstate){
 		for(int rank = 0; rank <= 7; rank++){
 			switch(boardstate.grid[file][rank].type){
 				case PAWN:
-					if(boardstate.grid[file][rank].owner == 1){
-						out = out + 100;
+					if(boardstate.grid[file][rank].owner == WHITE){
+						out += 100;
 						//Pawns should go towards the enemy
 						out += rank*10;
+						if(rank >= 6) out += 100;
 					}
 					else{
-						out = out - 100;
-						out -= 70 - rank*10;
+						out -= 100;
+						out -= 70 - (rank*10);
+						if(rank <= 1) out -= 100;
 					}
 					if(file%2 == 0 && rank%2 == 1) white_pawns++;
 					else black_pawns++;
 					break;
 				case BISHOP:
-					if(boardstate.grid[file][rank].owner == 1){
+					if(boardstate.grid[file][rank].owner == WHITE){
 						out = out + 350;
 						if(file%2 == 0 && rank%2 == 1) white_white_bishop = true;
 						else white_black_bishop = true;
@@ -419,23 +421,29 @@ int eval_board(struct board boardstate){
 					}
 					break;
 				case KNIGHT:
-					if(boardstate.grid[file][rank].owner == 1){
+					if(boardstate.grid[file][rank].owner == WHITE){
 						out = out + 300;
 						//Knights belong in the middle of the board
-						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out += 25;
+						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out += 10;
 						if(file >= 3 && file <= 4 && rank >=3 && rank <= 4) out += 25;
-						//Undeveloped pieces are worse
-						else if(rank == 0) out -= 50;
+						//Edge of board is bad
+						else{
+							if(rank == 0 || rank == 7) out -= 25;
+							if(file == 0 || file == 7) out -= 25;
+						}
 					}
 					else{
 						out = out - 300;
-						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out -= 25;
+						if(file >= 2 && file <= 5 && rank >=2 && rank <= 5) out -= 10;
 						if(file >= 3 && file <= 4 && rank >=3 && rank <= 4) out -= 25;
-						else if(rank == 7) out += 50;
+						else{
+							if(rank == 0 || rank == 7) out += 25;
+							if(file == 0 || file == 7) out += 25;
+						}
 					}
 					break;
 				case ROOK:
-					if(boardstate.grid[file][rank].owner == 1){
+					if(boardstate.grid[file][rank].owner == WHITE){
 						out = out + 500;
 						//Controlling the center files
 						if(file == 3 || file == 4) out += 50;
@@ -446,7 +454,7 @@ int eval_board(struct board boardstate){
 					}
 					break;
 				case QUEEN:
-					if(boardstate.grid[file][rank].owner == 1){
+					if(boardstate.grid[file][rank].owner == WHITE){
 						out = out + 900;
 					}
 					else{
