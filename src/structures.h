@@ -1,9 +1,9 @@
 //structures.h -- Defines (and typedefs) some data structures for use in this program:
 //	piece: Stores properties of a single piece
-//	move:  Stores properties of a single move
 //	board: Stores properties of a single boardstate
-//	grid: Stores 8x8 grid of pieces
-//	move_node: stores a move, its value, its board, and 2 pointers, for use in the possible move tree
+//	move:  Stores properties of a single move
+//	node:  Stores a board, the move that resulted in that board, and the node's depth
+//	node_array: Stores an array of nodes
 //Also defines some keywords for use elsewhere
 #if !defined(VACANT)
 

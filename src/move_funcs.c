@@ -1,3 +1,13 @@
+//move_funcs.c -- Defines the following functions relating to move structs:
+	//move move_new(int from_file, int from_rank, int to_file, int to_rank, int promote)
+	//	Returns a new move struct from the given parameters
+	//move move_invalid()
+	//	Returns an invalid move, used to terminate move arrays
+	//move move_from_string(char *str)
+	//	Returns a move struct from the given long-algebraic string
+	//void move_to_string(move move_in, char* out)
+	//	Writes a long-algebraic string from the given move struct to the given string pointer
+	
 #include "move_funcs.h"
 
 //Returns a move, as defined by parameters

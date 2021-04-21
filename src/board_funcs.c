@@ -1,3 +1,24 @@
+//structures.c -- Defines the following functions related to the board struct:
+	//board board_from_fen(char in[])
+	//	Returns a board defined by the FEN-formatted string in
+	//board board_invalid()
+	//	Returns an invalid board, used to mark the end of board arrays
+	//struct board _piece_move(struct board board_in, int from_file, int from_rank, int to_file, int to_rank)
+	//	Moves a piece to a new location; only intended for use by board_move
+	//board board_move(struct board board_in, struct move *move_in)
+	//	Returns board_in after *move_in has been made on it
+	//	Also sets the priority value of *move_in
+	//node_array board_legal_states(struct board board_in, int depth)
+	//	Returns an array of all possible boardstates from the given board (after 1 half-move)
+	//move* board_piece_possible_moves(struct board board_in, int from_file, int from_rank)
+	//	Returns an array of all possible moves that the piece on the given tile can make
+	//bool board_empty(board board_in, int to_file, int to_rank)
+	//	Checks if the given tile is empty
+	//bool board_capturable(board board_in, int to_file, int to_rank)
+	//	Checks whether or not the given tile can be moved to by the moving player, as a capture
+	//bool board_moveable(board board_in, int to_file, int to_rank)
+	//	Checks whether or not the given tile can be moved to by the moving player, either as a capture or a move
+
 #include "structures.h"
 #include "board_funcs.h"
 #include "piece_funcs.h"
@@ -137,81 +158,6 @@ struct board _piece_move(struct board board_in, int from_file, int from_rank, in
 	return board_in;
 }
 
-//Given a board and a move, returns the board after the given move is made on the given board
-//Assumes all given moves are "legal" (ignoring check); undefined behavior for illegal moves
-/*struct board board_move(struct board board_in, struct move move_in){
-	int from_file = move_in.from_file;
-	int from_rank = move_in.from_rank;
-	int to_file = move_in.to_file;
-	int to_rank = move_in.to_rank;
-	bool pawn_movement = board_in.grid[from_file][from_rank].type == PAWN;
-	
-	//En passant flag handling
-	if(pawn_movement && (from_rank - to_rank == 2 || from_rank - to_rank == -2)){
-		board_in.en_passant_valid = true; 
-		board_in.en_passant_file = to_file;
-		board_in.en_passant_rank = to_rank;
-	}
-	else board_in.en_passant_valid = false;
-	//Draw counter handling
-	if(pawn_movement || board_in.grid[to_file][to_rank].type != VACANT) board_in.draw_counter = 0;
-	else board_in.draw_counter++;
-	//Castling rights handling
-	//White's queenside rook
-	if(board_in.white_queenside && from_file == 0 && from_rank == 0) board_in.white_queenside = false;
-	//White's kingside rook
-	else if(board_in.white_kingside && from_file == 7 && from_rank == 0) board_in.white_kingside = false;
-	//White's king
-	else if((board_in.white_queenside || board_in.white_kingside) && from_file == 4 && from_rank == 0){
-		board_in.white_queenside = false;
-		board_in.white_kingside = false;
-	}
-	//Black's queenside rook
-	else if(board_in.black_queenside && from_file == 0 && from_rank == 0) board_in.black_queenside = false;
-	//Black's kingside rook
-	else if(board_in.black_kingside && from_file == 7 && from_rank == 0) board_in.black_kingside = false;
-	//Black's king
-	else if((board_in.black_queenside || board_in.black_kingside) && from_file == 4 && from_rank == 7){
-		board_in.black_queenside = false;
-		board_in.black_kingside = false;
-	}
-	//Castling handling
-	//The only legal move where the king moves more than one tile is the castle, so if the difference in file is > 1, then it must be a castle
-	if(board_in.grid[from_file][from_rank].type == KING && (move_in.from_file - move_in.to_file != 1 && move_in.from_file - move_in.to_file != 0 && move_in.from_file - move_in.to_file != -1)){
-		//Kingside castling
-		if(to_file - from_file > 0){
-			//Moves rook; king is moved at end of function
-			board_in = _piece_move(board_in, 7, from_rank, 5, from_rank);
-		}
-		//Queenside castling
-		else{
-			//Same as above
-			board_in = _piece_move(board_in, 0, from_rank, 2, from_rank);
-		}
-	}
-	//Promotion handling
-	else if(move_in.promote != 0){ 
-		board_in.grid[from_file][from_rank].type = move_in.promote;
-	}
-	//En passant handling
-	//The only legal diagonal pawn move that moves into an empty tile is an en passant
-	else if(pawn_movement && from_file != to_file && board_in.grid[to_file][to_rank].type == VACANT){
-		//White's move
-		if(board_in.grid[from_file][from_rank].owner == WHITE){
-			board_in.grid[to_file][to_rank-1].type = VACANT;
-		}
-		//Black's move
-		else{
-			board_in.grid[to_file][to_rank+1].type = VACANT;
-		}
-	}
-	//Actually moves the piece
-	board_in = _piece_move(board_in, from_file, from_rank, to_file, to_rank);
-	//Flip turn bool
-	board_in.to_move = !board_in.to_move;
-	return board_in;
-}
-*/
 //Given a board and a move, makes a move
 //Assumes all given moves are "legal" (ignoring check); undefined behavior for illegal moves
 //Also sets move_in's priority flag

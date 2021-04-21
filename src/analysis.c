@@ -1,3 +1,16 @@
+//structures.c -- Defines the following functions related to boardstate analysis:
+	//bool eval_check(board board_in)
+	//	Returns whether or not the moving player of board_in is in check
+	//piece* eval_array_captures(board board_in, int to_file, int to_rank, bool moving);
+	//	Returns a piece array of all pieces that can capture the given tile that belong to the player indicated by moving
+	//bool _eval_array_captures(board board_in, int to_file, int to_rank, bool moving);
+	//	Returns whether or not the player indicated by moving has any pieces that can capture the given tile
+	//int eval_result(struct board boardstate);
+	//	Given a board with no legal moves, returns the result of the game
+	//	WHITE_CHECKMATE for white checkmate, BLACK_CHECKMATE for black checkmate, 0 for stalemate
+	//int eval_board(struct board boardstate);
+	//	Analyzes the value of the given boardstate, taking into consideration material and position
+
 #include <stdio.h>
 #include "piece_funcs.h"
 #include "move_funcs.h"
@@ -395,14 +408,17 @@ int eval_board(struct board boardstate){
 					if(boardstate.grid[file][rank].owner == WHITE){
 						out += 100;
 						//Pawns should go towards the enemy
-						out += rank*10;
+						out += rank*5;
+						if(rank >= 5) out += 25;
 						if(rank >= 6) out += 100;
 					}
 					else{
 						out -= 100;
-						out -= 70 - (rank*10);
+						out -= 70 - (rank*5);
+						if(rank <= 2) out -= 25;
 						if(rank <= 1) out -= 100;
 					}
+					//Count number of pawns on each color, for bishop valuation
 					if(file%2 == 0 && rank%2 == 1) white_pawns++;
 					else black_pawns++;
 					break;
@@ -411,6 +427,7 @@ int eval_board(struct board boardstate){
 						out = out + 350;
 						if(file%2 == 0 && rank%2 == 1) white_white_bishop = true;
 						else white_black_bishop = true;
+						//Better to develop pieces
 						if(rank == 0) out -= 50;
 					}
 					else{
@@ -465,10 +482,10 @@ int eval_board(struct board boardstate){
 		}
 	}
 	//Bishops are better with less pawns on their tiles
-	if(white_white_bishop) out -= white_pawns * 10;
-	if(white_black_bishop) out -= black_pawns * 10;
-	if(black_white_bishop) out += white_pawns * 10;
-	if(black_black_bishop) out += black_pawns * 10;
+	if(white_white_bishop) out -= white_pawns * 5;
+	if(white_black_bishop) out -= black_pawns * 5;
+	if(black_white_bishop) out += white_pawns * 5;
+	if(black_black_bishop) out += black_pawns * 5;
 	//Check is bad for the moving player
 	if(boardstate.to_move && eval_check(boardstate)) out -= 50;
 	else if(!boardstate.to_move && eval_check(boardstate)) out +=50;
